@@ -111,7 +111,7 @@ foreach(ii = 1:dim(galaxies)[1])%dopar%{
 }
 
 
-k = 45
+k = 106
 detect_image = Rfits_read_image(paste0("/Volumes/RAIDY/JWST/ProFound/Detects/",galaxies$VID[k], "/", galaxies$MODULE[k], "/",
                                          galaxies$VID[k], "_", galaxies$MODULE[k], "_profound_stack.fits"))
 det_segim = readRDS(
