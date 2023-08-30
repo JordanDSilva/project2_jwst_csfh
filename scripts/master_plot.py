@@ -7,9 +7,11 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from scipy import stats
 
 plt.rcParams.update({'font.size': 16})
-plt.rcParams.update({'legend.fontsize':12})
+plt.rcParams.update({'legend.fontsize':14})
 plt.rcParams.update({'xtick.direction' : 'in'})
 plt.rcParams.update({'ytick.direction' : 'in'})
+
+main_stub = "/Users/22252335/Documents/PROJ2_JWST_CSFH/"
 
 import splotch as splt
 
@@ -30,22 +32,28 @@ def quantile84(x):
 def load_data():
     """load the data"""
 
-    data_drive = "~/Documents/CSFH_CAGNH_JWST/Data/save_data/"
+    data_drive = main_stub + "data/save/"
+    catalogue_drive = main_stub + "data/catalogues/"
+    literature_drive = main_stub + "data/literature/"
 
     CSFH_data = pd.read_csv(
         data_drive + "/jwst_csfh_data.csv"
     )
 
     gama_devils_data = pd.read_csv(
-        data_drive + "/csfh_cagnh_gama_devils.csv"
+        literature_drive + "/CSFH_DSILVA+23_Ver_Final.csv"
+    )
+
+    devilsz5 = pd.read_csv(
+        literature_drive + "/devils_super_z5.csv"
     )
 
     withAGN_catalogue = pd.read_csv(
-        data_drive + "/highz_withAGN_catalogue.csv"
+        catalogue_drive + "/ProSpect_highz_withAGN.csv"
     )
 
     withoutAGN_catalogue = pd.read_csv(
-        data_drive + "/highz_withoutAGN_catalogue.csv"
+        catalogue_drive + "/ProSpect_highz_withoutAGN.csv"
     )
 
     smf_data = pd.read_csv(
@@ -83,13 +91,13 @@ def load_data():
     )
 
     harikane2023 = pd.read_csv(
-        data_drive + "/harikane_JWST_2023.csv"
+        literature_drive + "/harikane_JWST_2023.csv"
     )
     bouwens2015 = pd.read_csv(
-        data_drive + "/bouwens_2015.csv"
+        literature_drive + "/bouwens_2015.csv"
     )
     bouwens2023 = pd.read_csv(
-        data_drive + "/bouwens_2023.csv"
+        literature_drive + "/bouwens_2023.csv"
     )
 
     return(
@@ -108,6 +116,8 @@ def load_data():
             "sfs_fits" : sfs_fits,
             "smfs" : smf_data,
             "sfs" : [sfs_z5,sfs_z8,sfs_z10],
+
+            "devilsz5" : devilsz5,
 
             "harikane2023": harikane2023,
             "bouwens2015" : bouwens2015,
@@ -150,9 +160,9 @@ def plot_csfh(data):
 
 ## plot my old gama+devils csfh
     ax.errorbar(
-        x=data["gama_devils"]["z"],
-        y=data["gama_devils"]["csfh"],
-        yerr=[data["gama_devils"]["csfh_err_down"], data["gama_devils"]["csfh_err_up"]],
+        x=data["gama_devils"]["redshift"],
+        y=data["gama_devils"]["csfrd"],
+        yerr=[data["gama_devils"]["err_down"], data["gama_devils"]["err_up"]],
         color="grey",
         fmt=".",
         markersize=8,
@@ -200,7 +210,7 @@ def plot_csfh(data):
         markerfacecolor="tab:blue",
         fmt="^",
         capsize=3,
-        label="ProSpect stellar",
+        label="Pro Stellar",
         alpha=1.0,
         ecolor="tab:blue",
         markeredgecolor="black",
@@ -224,7 +234,7 @@ def plot_csfh(data):
         markerfacecolor="tab:red",
         fmt="v",
         capsize=3,
-        label="ProSpect stellar+AGN",
+        label="Pro Stellar+AGN",
         alpha=1.0,
         ecolor="tab:red",
         markeredgecolor="black",
@@ -251,7 +261,7 @@ def plot_csfh(data):
     ax.legend(ncol=2, frameon=False, loc="lower left")
 
     fig.savefig(
-        "./plots/csfh.pdf"
+        main_stub + "plots/csfh.pdf"
     )
 def plot_mstar(data):
     """Plot stellar mass against stellar mass"""
@@ -432,8 +442,9 @@ def plot_mstar(data):
     )
 
     fig.savefig(
-        "./plots/mstar_mstar.pdf"
+        main_stub + "plots/mstar_mstar.pdf"
     )
+
 def plot_sfms(data):
     """Plot stellar mass against stellar mass"""
 
@@ -442,6 +453,7 @@ def plot_sfms(data):
     sfs_fits = data["sfs_fits"]
     smfs = data["smfs"]
     sfs_data = data["sfs"]
+    devilsz5 = data["devilsz5"]
 
 
     norm = plt.Normalize()
@@ -452,6 +464,17 @@ def plot_sfms(data):
 
     redshift_edges =[3.5, 6.5, 9.5, 12.5]
     for i in range(3):
+
+        ## DEVILSD10 z>5
+        ax[0, i].scatter(
+            np.log10(devilsz5["Mstar"]),
+            np.log10(devilsz5["SFR"]),
+            marker=",",
+            color="grey",
+            s = 5.0,
+            alpha = 0.1,
+            label = "DEVILSD10 z>5"
+        )
 
         redshift_idx = np.where(
             (withAGN_catalogue["z"] >= redshift_edges[i]) &
@@ -478,7 +501,8 @@ def plot_sfms(data):
             sfs_data[i]["withAGN_sfr"],
             edgecolors="tab:red",
             c="darkred",
-            alpha = 0.4
+            alpha = 0.7,
+            label = "Pro Stellar+AGN"
         )
 
         ax[0, i].errorbar(
@@ -495,16 +519,17 @@ def plot_sfms(data):
             sfs_data[i]["withoutAGN_sfr"],
             edgecolors="tab:blue",
             c="navy",
-            alpha = 0.4
+            alpha = 0.7,
+            label="Pro Stellar"
         )
 
         ax[0, i].plot([0,100], [0,100], ls="--", color="grey")
 
 
-        ax[0, i].set_xlim([5.5, 12.5])
-        ax[0, i].set_ylim([-2.5, 2.5])
+        ax[0, i].set_xlim([4.5, 12.5])
+        ax[0, i].set_ylim([-4.5, 2.5])
         ax[0, i].set_xticks([6, 8, 10, 12])
-        ax[0, i].set_yticks([-1.5, 0.0, 1.5])
+        ax[0, i].set_yticks([-3.0, -1.5, 0.0, 1.5])
         ax[0,i].set_yticklabels([r'$10^{{{:n}}}$'.format(i) for i in ax[0,i].get_yticks()])
         ax[0, i].set_xticklabels([r'$10^{{{:n}}}$'.format(i) for i in ax[0, i].get_xticks()])
 
@@ -692,8 +717,10 @@ def plot_sfms(data):
         linewidth=2
     )
 
+    ax[0, 2].legend()
+
     for i in range(3):
-        ax[1, i].set_xlim([5.5, 12.5])
+        ax[1, i].set_xlim([4.5, 12.5])
         ax[1, i].set_ylim([-6.0, -1.0])
         ax[1, i].set_xticks([6, 8, 10, 12])
         ax[1, i].set_yticks([-5.0, -3.0, -1.0])
@@ -713,10 +740,10 @@ def plot_sfms(data):
     )
 
     fig.savefig(
-        "./plots/sfs.pdf"
+        main_stub + "plots/sfs.pdf"
     )
 
-def plot_sfms_all(data):
+def plot_delta_sfr(data):
 
     withAGN = data["withAGN"]
     withoutAGN = data["withoutAGN"]
@@ -724,7 +751,7 @@ def plot_sfms_all(data):
     norm = plt.Normalize()
     cm = plt.colormaps["RdYlBu_r"]
 
-    fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(12, 4), constrained_layout=True, sharey=True)
+    fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(7, 9), constrained_layout=False, sharey=True)
 
     sfs_data = data["sfs"]
     mstar_bins = np.array([4.5, 6.5, 8.5, 10.5])
@@ -744,7 +771,7 @@ def plot_sfms_all(data):
 
         ax[i].set_title(
             str(mstar_bins[i]) + "$ \\rm {\\leq \\log_{10} (M_{\\star}^{AGN+Stellar}/M_{\\odot})< }$" + str(mstar_bins[i+1]),
-            fontsize = 12
+            # fontsize = 14
         )
         axx=ax[i].scatter(
             np.log10(np.array(withAGN["AGNlum50"]))[idx],
@@ -788,8 +815,8 @@ def plot_sfms_all(data):
         -6, 1
     )
 
-    cbar = fig.colorbar(axx, ax=ax[2], orientation='vertical', ticks=[3.5, 6.5, 9.5, 12.5], label="Redshift")
-    cbar.ax.tick_params(labelsize=12, pad=5)
+    # cbar = fig.colorbar(axx, ax=ax[2], orientation='vertical', ticks=[3.5, 6.5, 9.5, 12.5], label="Redshift")
+    # cbar.ax.tick_params(labelsize=12, pad=5)
 
     fig.supxlabel(
         "$\\rm{ L_{AGN} \\, / \\, erg \\, s^{-1} }$"
@@ -799,17 +826,24 @@ def plot_sfms_all(data):
         "$\\rm{ \\Delta SFR_{AGN+Stellar - Stellar} }$"
     )
 
+    plt.tight_layout()
+
+    fig.subplots_adjust(right=0.8)
+    cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+    cbar = fig.colorbar(axx, cax=cbar_ax, orientation='vertical', ticks=[3.5, 6.5, 9.5, 12.5], label="Redshift")
+    # cbar.ax.tick_params(labelsize=14, pad=5)
+
     fig.savefig(
-        "./plots/sfs_all.pdf"
+        main_stub + "plots/delta_sfr.pdf"
     )
+
 def main():
     data = load_data()
     plot_csfh(data)
     plot_mstar(data)
     plot_sfms(data)
-    plot_sfms_all(data)
+    plot_delta_sfr(data)
 
-    # plot_everythingV2(data)
 
 if __name__ == "__main__":
     main()

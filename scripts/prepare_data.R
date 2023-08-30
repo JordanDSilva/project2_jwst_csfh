@@ -121,7 +121,7 @@ lambda_temp = c(wave_temp$`hst/ACS_update_sep07/wfc_f606w_t81.dat`,
                 wave_temp$`hst/ACS_update_sep07/wfc_f775w_t81.dat`,
                 wave_temp$F090W_JWST,
                 wave_temp$`hst/ACS_update_sep07/wfc_f435w_t81.dat`,
-                wave_temp$`hst/ACS_update_sep07/wfc_f475_t81.dat`
+                wave_temp$`hst/ACS_update_sep07/wfc_f475w_t81.dat`
 )
 lambda = sort(lambda_temp)
 filter_names_temp = sapply(c(cenwave$filter, EAZY_filters$info), list)
@@ -194,7 +194,7 @@ match = coordmatch(coordref = highz[,c("RA","DEC")],
 galaxies = fincat[match$bestmatch$compareID, ]
 galaxies$z = highz$z[match$bestmatch$refID]
 
-i=10
+i=5
 magplot(
   lambda, unlist(galaxies[i, fluxt_names])
 )
@@ -319,3 +319,11 @@ galaxies$zphot = zout$z_ml
 magplot(galaxies$z, galaxies$zphot)
 fwrite(galaxies, file = "~/Documents/CSFH_CAGNH_JWST/Data/highz_photometry_cat.csv")
 galaxies = data.frame( fread("~/Documents/CSFH_CAGNH_JWST/Data//highz_photometry_cat.csv") )
+
+
+
+withAGN = data.frame(
+  fread(
+    "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/catalogues/ProSpect_highz_withAGN.csv"
+  )
+)
