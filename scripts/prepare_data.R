@@ -321,9 +321,3 @@ fwrite(galaxies, file = "~/Documents/CSFH_CAGNH_JWST/Data/highz_photometry_cat.c
 galaxies = data.frame( fread("~/Documents/CSFH_CAGNH_JWST/Data//highz_photometry_cat.csv") )
 
 
-
-withAGN = data.frame(
-  fread(
-    "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/catalogues/ProSpect_highz_withAGN.csv"
-  )
-)

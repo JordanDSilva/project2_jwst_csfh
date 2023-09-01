@@ -6,10 +6,11 @@ import matplotlib.gridspec as grplt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from scipy import stats
 
-plt.rcParams.update({'font.size': 16})
+plt.rcParams.update({'font.size': 20})
 plt.rcParams.update({'legend.fontsize':14})
 plt.rcParams.update({'xtick.direction' : 'in'})
 plt.rcParams.update({'ytick.direction' : 'in'})
+plt.rcParams.update({'lines.markersize': 10})
 
 main_stub = "/Users/22252335/Documents/PROJ2_JWST_CSFH/"
 
@@ -100,6 +101,9 @@ def load_data():
         literature_drive + "/bouwens_2023.csv"
     )
 
+    thorne2021_fitting = pd.read_csv(
+        literature_drive + "/thorne21_fitting_csfh.csv"
+    )
     return(
         {
             "CSFH" : CSFH_data,
@@ -121,7 +125,9 @@ def load_data():
 
             "harikane2023": harikane2023,
             "bouwens2015" : bouwens2015,
-            "bouwens2023" : bouwens2023
+            "bouwens2023" : bouwens2023,
+
+            "thorne2021_fitting" : thorne2021_fitting
         }
     )
 
@@ -157,6 +163,14 @@ def plot_csfh(data):
 
     ax.plot(zvec, md2014_fit(zvec), color=colour_palette["lines"], linestyle="--", linewidth=2, label="M&D+14")
     ax.plot(zvec, harikane_csfh(zvec), color=colour_palette["lines"], linewidth=2, label="Harikane+22")
+    ax.fill_between(
+        data["thorne2021_fitting"]["z"],
+        data["thorne2021_fitting"]["csfh_lo"],
+        data["thorne2021_fitting"]["csfh_hi"],
+        color=colour_palette["lines"],
+        alpha = 0.6,
+        label = "Thorne+21"
+    )
 
 ## plot my old gama+devils csfh
     ax.errorbar(
@@ -258,7 +272,7 @@ def plot_csfh(data):
     ax.set_xlabel("Redshift")
     ax.set_ylabel("$\\rm{ \\rho_{SFR} \\, / \\, M_{\\odot} \\, yr^{-1} \\, Mpc^{-3} }$")
 
-    ax.legend(ncol=2, frameon=False, loc="lower left")
+    ax.legend(ncol=1, frameon=False, loc="lower left")
 
     fig.savefig(
         main_stub + "plots/csfh.pdf"
@@ -266,7 +280,7 @@ def plot_csfh(data):
 def plot_mstar(data):
     """Plot stellar mass against stellar mass"""
 
-    fig, ax = plt.subplots(nrows=2, ncols=3, figsize=(8, 5), constrained_layout=True, height_ratios=(2,1), sharex="col", sharey="row")
+    fig, ax = plt.subplots(nrows=2, ncols=3, figsize=(10, 7), constrained_layout=True, height_ratios=(2,1), sharex="col", sharey="row")
 
     mstar_data = data["mstar_data"]
 
@@ -320,10 +334,10 @@ def plot_mstar(data):
             0,8, hatch = "\\", facecolor="grey", edgecolor="black", alpha = 0.3
         )
 
-        ax[0, i].set_xlim([4.5, 11.5])
-        ax[0, i].set_ylim([4.5, 11.5])
-        ax[0, i].set_xticks([6, 8, 10])
-        ax[0, i].set_yticks([6, 8, 10])
+        ax[0, i].set_xlim([4.5, 12.5])
+        ax[0, i].set_ylim([4.5, 12.5])
+        ax[0, i].set_xticks([6, 8, 10, 12])
+        ax[0, i].set_yticks([6, 8, 10, 12])
         ax[0,i].set_yticklabels([r'$10^{{{:n}}}$'.format(i) for i in ax[0,i].get_yticks()])
         ax[0, i].set_xticklabels([r'$10^{{{:n}}}$'.format(i) for i in ax[0, i].get_xticks()])
 
@@ -384,11 +398,12 @@ def plot_mstar(data):
         )
 
         ax[1, i].axhline(0.0, color="black", ls = "--")
-        ax[1, i].set_xlim([4.5, 11.5])
+        ax[1, i].set_xlim([4.5, 12.5])
         ax[1, i].set_ylim([-0.5, 5.0])
-        ax[1, i].set_xticks([6, 8, 10])
+        ax[1, i].set_xticks([6, 8, 10, 12])
         ax[1, i].set_yticks([0, 2, 4])
         ax[1, i].set_xticklabels([r'$10^{{{:n}}}$'.format(i) for i in ax[1, i].get_xticks()])
+        ax[1,i].xaxis.set_tick_params(pad=5)
 
     ax[0, 0].plot(
         mstar_fits["test_mstar"], mstar_fits["z5_fit"],
@@ -421,7 +436,7 @@ def plot_mstar(data):
         alpha=0.5
     )
 
-    inset_axes_font_size = 12.0
+    inset_axes_font_size = 16.0
     ax0_inset = inset_axes(ax[1,2], width="80%", height="5%",
                            loc="center", bbox_to_anchor=(0.0, 0.2, 1, 1),
                            bbox_transform=ax[1,2].transAxes
@@ -432,7 +447,8 @@ def plot_mstar(data):
                    transform=ax[1,2].transData, fontsize=inset_axes_font_size)
 
     ax[0,0].set_ylabel(
-        "$\\rm{ M_{\\star}^{Pro \\, Stellar} \\, / \\, M_{\\odot} }$"
+        "$\\rm{ M_{\\star}^{Pro \\, Stellar} \\, / \\, M_{\\odot} }$",
+
     )
     ax[1,0].set_ylabel(
         "$\\rm{\\Delta M_{\\star}}$"
@@ -448,7 +464,7 @@ def plot_mstar(data):
 def plot_sfms(data):
     """Plot stellar mass against stellar mass"""
 
-    fig, ax = plt.subplots(nrows=2, ncols=3, figsize=(10, 8), constrained_layout=True, sharex="col", sharey="row")
+    fig, ax = plt.subplots(nrows=2, ncols=3, figsize=(10, 7), constrained_layout=True, sharex="col", sharey="row")
 
     sfs_fits = data["sfs_fits"]
     smfs = data["smfs"]
@@ -471,8 +487,8 @@ def plot_sfms(data):
             np.log10(devilsz5["SFR"]),
             marker=",",
             color="grey",
+            alpha = 0.5,
             s = 5.0,
-            alpha = 0.1,
             label = "DEVILSD10 z>5"
         )
 
@@ -726,13 +742,17 @@ def plot_sfms(data):
         ax[1, i].set_yticks([-5.0, -3.0, -1.0])
         ax[1, i].set_yticklabels([r'$10^{{{:n}}}$'.format(i) for i in ax[1, i].get_yticks()])
         ax[1, i].set_xticklabels([r'$10^{{{:n}}}$'.format(i) for i in ax[1, i].get_xticks()])
+        ax[1, i].xaxis.set_tick_params(pad=5)
+
 
     ax[0,0].set_ylabel(
-        "$\\rm{ SFR \\, / \\, M_{\\odot} \\, yr^{-1} }$"
+        "$\\rm{ SFR \\, / \\, M_{\\odot} \\, yr^{-1} }$",
+        fontsize = 16
     )
 
     ax[1, 0].set_ylabel(
-        "$\\rm{ \\phi(M_{\\star}) \\times SFMS \\, / \\, M_{\\odot} \\, yr^{-1} \\, Mpc^{-3} \\, dex^{-1} }$"
+        "$\\rm{ \\phi(M_{\\star}) \\times SFMS \\, / \\, M_{\\odot} \\, yr^{-1} \\, Mpc^{-3} \\, dex^{-1} }$",
+        fontsize = 16
     )
 
     fig.supxlabel(
@@ -751,7 +771,7 @@ def plot_delta_sfr(data):
     norm = plt.Normalize()
     cm = plt.colormaps["RdYlBu_r"]
 
-    fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(7, 9), constrained_layout=False, sharey=True)
+    fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(12, 5), constrained_layout=True, sharey=True)
 
     sfs_data = data["sfs"]
     mstar_bins = np.array([4.5, 6.5, 8.5, 10.5])
@@ -771,7 +791,7 @@ def plot_delta_sfr(data):
 
         ax[i].set_title(
             str(mstar_bins[i]) + "$ \\rm {\\leq \\log_{10} (M_{\\star}^{AGN+Stellar}/M_{\\odot})< }$" + str(mstar_bins[i+1]),
-            # fontsize = 14
+            fontsize = 14
         )
         axx=ax[i].scatter(
             np.log10(np.array(withAGN["AGNlum50"]))[idx],
@@ -798,6 +818,7 @@ def plot_delta_sfr(data):
 
         ax[i].set_xlim([34.5, 47.5])
         ax[i].set_xticks([35, 39, 43, 47])
+        ax[i].xaxis.set_tick_params(pad=5)
 
         ax[i].set_xticklabels([r'$10^{{{:n}}}$'.format(i) for i in ax[i].get_xticks()])
 
@@ -817,21 +838,26 @@ def plot_delta_sfr(data):
 
     # cbar = fig.colorbar(axx, ax=ax[2], orientation='vertical', ticks=[3.5, 6.5, 9.5, 12.5], label="Redshift")
     # cbar.ax.tick_params(labelsize=12, pad=5)
+    fig.colorbar(axx, orientation='vertical', label = "Redshift")
 
     fig.supxlabel(
-        "$\\rm{ L_{AGN} \\, / \\, erg \\, s^{-1} }$"
+        "$\\rm{ L_{AGN} \\, / \\, erg \\, s^{-1} }$",
+        fontsize = 24
     )
 
     fig.supylabel(
-        "$\\rm{ \\Delta SFR_{AGN+Stellar - Stellar} }$"
+        "$\\rm{ \\Delta SFR_{AGN+Stellar - Stellar} }$",
+        fontsize = 24
     )
 
-    plt.tight_layout()
+    # plt.tight_layout()
 
-    fig.subplots_adjust(right=0.8)
-    cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-    cbar = fig.colorbar(axx, cax=cbar_ax, orientation='vertical', ticks=[3.5, 6.5, 9.5, 12.5], label="Redshift")
-    # cbar.ax.tick_params(labelsize=14, pad=5)
+    # fig.subplots_adjust(right=0.75)
+    # cbar_ax = fig.add_axes([0.83, 0.15, 0.05, 0.7])
+    # cbar = fig.colorbar(axx, cax=cbar_ax, orientation='vertical',
+    #                     ticks=[3.5, 6.5, 9.5, 12.5]
+    #                     )
+    # cbar.set_label(label="Redshift", fontsize = 24)
 
     fig.savefig(
         main_stub + "plots/delta_sfr.pdf"
@@ -839,9 +865,9 @@ def plot_delta_sfr(data):
 
 def main():
     data = load_data()
-    plot_csfh(data)
-    plot_mstar(data)
-    plot_sfms(data)
+    # plot_csfh(data)
+    # plot_mstar(data)
+    # plot_sfms(data)
     plot_delta_sfr(data)
 
 
