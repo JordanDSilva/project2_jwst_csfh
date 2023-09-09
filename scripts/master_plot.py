@@ -100,6 +100,17 @@ def load_data():
     bouwens2023 = pd.read_csv(
         literature_drive + "/bouwens_2023.csv"
     )
+    adams2023_ = np.loadtxt(
+        literature_drive + "/Adams23_CSFRDCompilation.dat"
+    )
+    adams2023 = pd.DataFrame(
+        {
+            "redshift" : adams2023_[[1,5,11,17],0],
+            "csfh" : adams2023_[[1,5,11,17],1],
+            "lo" : adams2023_[[1,5,11,17],2],
+            "hi" : adams2023_[[1,5,11,17],3]
+        }
+    )
 
     thorne2021_fitting = pd.read_csv(
         literature_drive + "/thorne21_fitting_csfh.csv"
@@ -126,6 +137,7 @@ def load_data():
             "harikane2023": harikane2023,
             "bouwens2015" : bouwens2015,
             "bouwens2023" : bouwens2023,
+            "adams2023" : adams2023,
 
             "thorne2021_fitting" : thorne2021_fitting
         }
@@ -189,7 +201,8 @@ def plot_csfh(data):
         yerr=[data["bouwens2015"]["err_down"], data["bouwens2015"]["err_up"]],
         color=colour_palette["points"],
         fmt="x",
-        label="Bouwens+15"
+        label="Bouwens+15",
+        alpha = 0.7
     )
 ## plot new harikane data
     ax.errorbar(
@@ -198,29 +211,40 @@ def plot_csfh(data):
         yerr = [data["harikane2023"]["lo"], data["harikane2023"]["hi"]],
         color=colour_palette["points"],
         fmt = "s",
-        label = "Harikane+23"
+        label = "Harikane+23",
+        alpha = 0.7,
     )
 ## plot bouwens+23 data
     ax.errorbar(
         data["bouwens2023"]["redshift"][0:2],
         data["bouwens2023"]["csfh"][0:2],
         yerr=[data["bouwens2023"]["lo"][0:2], data["bouwens2023"]["hi"][0:2]],
-        # uplims = [False, False, False],
-        # lolims = [False, False, False],
-        capsize = 3,
         color=colour_palette["points"],
         fmt="d",
-        label="Bouwens+23"
+        label="Bouwens+23",
+        alpha = 0.7
+    )
+
+## plot Adams+23 points
+    ax.errorbar(
+        data["adams2023"]["redshift"],
+        data["adams2023"]["csfh"],
+        yerr=[data["adams2023"]["csfh"] - data["adams2023"]["lo"], data["adams2023"]["hi"] - data["adams2023"]["csfh"]],
+        color=colour_palette["points"],
+        fmt="*",
+        label="Adams+23",
+        alpha = 0.7
     )
 
 ## plot the new csfh
     csfh = data["CSFH"]
 
+    err_up = csfh["CSFH_without_AGN_q84"]
     ax.errorbar(
         csfh["z"], csfh["CSFH_without_AGN"],
-        yerr=[csfh["CSFH_without_AGN_q16"], csfh["CSFH_without_AGN_q84"]],
+        yerr=[csfh["CSFH_without_AGN_q16"], [err_up[0], err_up[1], 0.0]],
         xerr=[csfh["z"] - csfh["z16"], csfh["z84"] - csfh["z"]],
-        markersize=10,
+        markersize=12,
         markerfacecolor="tab:blue",
         fmt="^",
         capsize=3,
@@ -228,23 +252,26 @@ def plot_csfh(data):
         alpha=1.0,
         ecolor="tab:blue",
         markeredgecolor="black",
-        zorder = 200
-    )
-    ax.errorbar(
-        csfh["z"], csfh["CSFH_without_AGN"],
-        yerr=0,
-        xerr=[csfh["z"] - csfh["zmin"], csfh["zmax"] - csfh["z"]],
-        color="tab:blue",
-        fmt="none",
-        alpha=0.5,
-        zorder=200
+        zorder=200,
     )
 
     ax.errorbar(
+        csfh["z"], csfh["CSFH_without_AGN"],
+        yerr=[0,0,0.2],
+        xerr=[csfh["z"] - csfh["zmin"], csfh["zmax"] - csfh["z"]],
+        color="tab:blue",
+        fmt="none",
+        alpha=0.7,
+        zorder=200,
+        lolims = [False, False, True]
+    )
+
+    err_up = csfh["CSFH_with_AGN_q84"]
+    ax.errorbar(
         csfh["z"]+0.05, csfh["CSFH_with_AGN"],
-        yerr=[csfh["CSFH_with_AGN_q16"], csfh["CSFH_with_AGN_q84"]],
+        yerr=[csfh["CSFH_with_AGN_q16"], [err_up[0], err_up[1], 0]],
         xerr=[csfh["z"] - csfh["z16"], csfh["z84"] - csfh["z"]],
-        markersize = 10,
+        markersize = 12,
         markerfacecolor="tab:red",
         fmt="v",
         capsize=3,
@@ -256,12 +283,13 @@ def plot_csfh(data):
     )
     ax.errorbar(
         csfh["z"]+0.05, csfh["CSFH_with_AGN"],
-        yerr = 0,
+        yerr = [0,0,0.2],
         xerr=[csfh["z"] - csfh["zmin"], csfh["zmax"]-csfh["z"]],
         color = "tab:red",
         fmt = "none",
-        alpha = 0.5,
-        zorder=200
+        alpha = 0.7,
+        zorder=200,
+        lolims = [False, False, True]
     )
 
     ax.set_xlim([0,16.5])
@@ -277,6 +305,7 @@ def plot_csfh(data):
     fig.savefig(
         main_stub + "plots/csfh.pdf"
     )
+
 def plot_mstar(data):
     """Plot stellar mass against stellar mass"""
 
@@ -539,7 +568,10 @@ def plot_sfms(data):
             label="Pro Stellar"
         )
 
-        ax[0, i].plot([0,100], [0,100], ls="--", color="grey")
+        # ax[0, i].plot([-100,100], [-100,100], ls="--", color="grey")
+        ax[0, i].axvspan(
+            0, 8, hatch="\\", facecolor="grey", edgecolor="black", alpha=0.3
+        )
 
 
         ax[0, i].set_xlim([4.5, 12.5])
@@ -865,10 +897,10 @@ def plot_delta_sfr(data):
 
 def main():
     data = load_data()
-    # plot_csfh(data)
+    plot_csfh(data)
     # plot_mstar(data)
     # plot_sfms(data)
-    plot_delta_sfr(data)
+    # plot_delta_sfr(data)
 
 
 if __name__ == "__main__":

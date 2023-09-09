@@ -92,7 +92,7 @@ spline_fit = function(zedge_min, zedge_max, data, key, df){
     xx = xdata + rnorm(length(xdata), mean = 0, sd = xdata_err)
     yy = ydata + rnorm(length(ydata), mean = 0, sd = ydata_err)
     
-    idx = xx>= 0
+    idx = xx>= 8
     
     fit = smooth.spline(
       xx[idx], yy[idx], df = df, w = 1/(ydata_err[idx]^2 + xdata_err[idx]^2)
@@ -154,7 +154,7 @@ smf_z9 = dfmodel(fit_data$withAGN$z5$test_mstar, p = c(-5.12, 9.50, -2.00))
 smf_z10 = dfmodel(fit_data$withAGN$z5$test_mstar, p = c(-6.13, 9.50, -2.00))
 smfs = list(smf_z5, smf_z7, smf_z10)
 
-devilsd10 = fread("/Volumes/JordanData/PhD/GAMA-DEVILS/CSFRD Compendium/GAMA-DEVILS/devilsd10_super.csv")
+# devilsd10 = fread("/Volumes/JordanData/PhD/GAMA-DEVILS/CSFRD Compendium/GAMA-DEVILS/devilsd10_super.csv")
 
 calc_csfh = function(data, smf){
   
@@ -219,9 +219,9 @@ harikane_22_constant_sfe = function(z){
     2.4 * 10^(0.5*(1+z)-3.0) )^-1
 }
 
-bouwens_2015 = fread("/Volumes/JordanData/PhD/GAMA-DEVILS/CSFRD Compendium/processed/obs/rest_UV/bouwens2015.csv")
+# bouwens_2015 = fread("/Volumes/JordanData/PhD/GAMA-DEVILS/CSFRD Compendium/processed/obs/rest_UV/bouwens2015.csv")
 
-dsilva23_csfh = fread("/Volumes/JordanData/PhD/GAMA-DEVILS/CSFRD Compendium/processed/obs/GAMA-DEVILS/CSFH_DSILVA+23_Ver_Final.csv")
+# dsilva23_csfh = fread("/Volumes/JordanData/PhD/GAMA-DEVILS/CSFRD Compendium/processed/obs/GAMA-DEVILS/CSFH_DSILVA+23_Ver_Final.csv")
 
 spline_fit_mstar = function(zedge_min, zedge_max, with_agn, without_agn, df = 2){
   ## keys are fixed
@@ -470,30 +470,30 @@ fwrite(
   "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/save/smf_data.csv"
 )
 
-harikane_23_phot = data.frame(
-  z = c(9,12,16),
-  csfh = c(-2.61, -3.23, -3.59) + log10(1/1.53),
-  hi = c(0.18, 0.29, 0.33),
-  lo = c(0.16, 0.27, 2.83)
-)
-fwrite(
-  harikane_23_phot,
-  file = "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/literature/harikane_JWST_2023.csv"
-)
-
-fwrite(
-  bouwens_2015,
-  file = "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/literature/bouwens_2015.csv"
-)
-
-bouwens_2023 = data.frame(
-  redshift = c(8.7, 10.5, 12.6, 14.7),
-  csfh = c(-3.00, -3.82, -3.24, -2.59),
-  hi = c(0.24, 0.30, 0.37, 0.6), #last will be upper limits
-  lo = c(0.24, 0.30, 0.48, 0.0)
-) #https://arxiv.org/pdf/2211.02607.pdf
-fwrite(
-  bouwens_2023,
-  file = "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/literature/bouwens_2023.csv"
-)
+# harikane_23_phot = data.frame(
+#   z = c(9,12,16),
+#   csfh = c(-2.61, -3.23, -3.59) + log10(1/1.53),
+#   hi = c(0.18, 0.29, 0.33),
+#   lo = c(0.16, 0.27, 2.83)
+# )
+# fwrite(
+#   harikane_23_phot,
+#   file = "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/literature/harikane_JWST_2023.csv"
+# )
+#
+# fwrite(
+#   bouwens_2015,
+#   file = "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/literature/bouwens_2015.csv"
+# )
+#
+# bouwens_2023 = data.frame(
+#   redshift = c(8.7, 10.5, 12.6, 14.7),
+#   csfh = c(-3.00, -3.82, -3.24, -2.59),
+#   hi = c(0.24, 0.30, 0.37, 0.6), #last will be upper limits
+#   lo = c(0.24, 0.30, 0.48, 0.0)
+# ) #https://arxiv.org/pdf/2211.02607.pdf
+# fwrite(
+#   bouwens_2023,
+#   file = "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/literature/bouwens_2023.csv"
+# )
 
