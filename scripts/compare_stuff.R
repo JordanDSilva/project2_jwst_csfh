@@ -113,13 +113,16 @@ withoutAGN = data.frame(
 
 match_literature = coordmatch(
   coordref = literature_galaxies[, c("RA", "DEC")],
-  coordcompare = withAGN[, c("RA", "DEC")]
+  coordcompare = withAGN[, c("RA", "DEC")],
+  rad = 1
 )
 
 match_withAGN = withAGN[match_literature$bestmatch$compareID, ]
 match_withoutAGN = withoutAGN[match_literature$bestmatch$compareID, ]
 match_harikane = literature_galaxies[match_literature$bestmatch$refID, ]
 
+png("/Users/22252335/Documents/PROJ2_JWST_CSFH/plots/agnlum_compare_harikane.png",
+    width = 10, height = 8, units = "in", res = 240)
 magplot(
   log10(match_withAGN$AGNlum50),
   log10(match_harikane$AGNLum),
@@ -127,7 +130,9 @@ magplot(
   ylim = c(35, 48),
   pch = 16,
   cex = 1.2,
-  col = brewer.pal(6, "Dark2")
+  col = brewer.pal(6, "Dark2"),
+  xlab = "log(LAGN) Pro AGN+Stellar",
+  ylab = "log(LAGN) Harikane+23"
 )
 magerr(
   log10(match_withAGN$AGNlum50),
@@ -148,6 +153,7 @@ legend(
   col = brewer.pal(6, "Dark2")
 
 )
+dev.off()
 
 filelist = paste0(
   "/Volumes/RAIDY/JWST/ProFound/Detects/",
@@ -158,13 +164,27 @@ filelist = paste0(
 detect_list = Rfits_make_list(
   filelist = filelist
 )
+segim_list = Rfits_make_list(
+  filelist = filelist, extlist = 2
+)
 
 png("/Users/22252335/Documents/PROJ2_JWST_CSFH/plots/AGNcutouts.png",
     width = 10, height = 8, units = "in", res = 240)
+box = 50
 par(mfrow = c(2,3), mar = rep(2,4), oma = rep(2,4))
 for(i in 1:6){
-  magimage(detect_list[[i]][match_withAGN$RA[i], match_withAGN$DEC[i], box = 50, type="coord"]$imDat,
-       flip = T)
+  segim_Rfits = Rfits_create_image(
+    data = segim_list[[i]][,]$imDat,
+    keyvalues = detect_list[[i]]$keyvalues,
+  )
+  profoundSegimPlot(
+    image = detect_list[[i]][match_withAGN$RA[i], match_withAGN$DEC[i], box = box, type="coord"]$imDat,
+    segim = segim_Rfits[match_withAGN$RA[i], match_withAGN$DEC[i], box = box, type="coord"]$imDat == 
+      segim_Rfits[match_withAGN$RA[i], match_withAGN$DEC[i], box = box, type="coord"]$imDat[box/2.0,box/2.0],
+    locut = 0.6, hicut = 0.99,
+    col = brewer.pal(6, "Dark2")[i],
+    flip = T
+  )
   legend(
     x = "topright",
     legend = paste0(match_withAGN$COLID[i], "_", match_withAGN$VISITID[i], "_", match_withAGN$MODULE[i])
@@ -326,3 +346,121 @@ mtext("HST EGS Cat stellar mass", side = 1, outer = T, line = 2.0)
 mtext("ProSpect stellar mass", side = 2, outer = T, line = 2.0)
 
 dev.off()
+
+which.max(
+  withAGN$AGNlum50
+)
+
+## Show the Larson+23 BH
+foo = readRDS("/Users/22252335/Documents/PROJ2_JWST_CSFH/ProSpectOut/withAGN/gal_10_1345068001_NRCA.rds")
+bar = readRDS("/Users/22252335/Documents/PROJ2_JWST_CSFH/ProSpectOut/withoutAGN/gal_10_1345068001_NRCA.rds")
+
+c_light = 299792458
+Redshift = foo$bestfit$Data$arglist$z
+
+cenwave = foo$bestfit$Data$flux$cenwave
+photom = Jansky2CGS(foo$bestfit$Data$flux$flux) * (c_light / (foo$bestfit$Data$flux$cenwave * 1e-10)^2) / 1e10
+photom_err = Jansky2CGS(foo$bestfit$Data$flux$fluxerr) * (c_light / (foo$bestfit$Data$flux$cenwave * 1e-10)^2) / 1e10
+sedflux_withAGN = photom_flux(wave = sed_withAGN$wave, flux = sed_withAGN$flux, filters = foo$bestfit$Data$flux$filter, outtype = "CGS") * (c_light / (foo$bestfit$Data$flux$cenwave * 1e-10)^2) / 1e10
+sedflux_withoutAGN = photom_flux(wave = sed_withoutAGN$wave, flux = sed_withoutAGN$flux, filters = bar$bestfit$Data$flux$filter, outtype = "CGS") * (c_light / (bar$bestfit$Data$flux$cenwave * 1e-10)^2) / 1e10
+
+photometry = data.frame(
+  "lambda" = cenwave,
+  "flux" = photom,
+  "flux_err" = photom_err,
+  "sed_withAGN" = sedflux_withAGN,
+  "sed_withoutAGN" = sedflux_withoutAGN
+)
+
+foo$bestfit$LP - bar$bestfit$LP
+
+sum(
+ (photometry$flux - photometry$sed_withAGN)^2 / (photometry$flux_err)^2, na.rm = T
+) / (length(foo$bestfit$parm)-1)
+
+sum(
+ (photometry$flux - photometry$sed_withoutAGN)^2 / (photometry$flux_err)^2, na.rm = T
+) / (length(bar$bestfit$parm)-1)
+
+sed_withAGN = Lum2Flux(
+  wave = foo$bestfit$SEDout$FinalLum$wave,
+  lum = foo$bestfit$SEDout$FinalLum$lum,
+  z = Redshift,
+  ref = "737"
+)
+
+magplot(
+  cenwave/1e4,
+  photom/1e-19
+)
+points(
+  cenwave/1e4,
+  test/1e-19, pch=16
+)
+
+sed_withoutAGN = Lum2Flux(
+  wave = bar$bestfit$SEDout$FinalLum$wave,
+  lum = bar$bestfit$SEDout$FinalLum$lum,
+  z = Redshift,
+  ref = "737"
+)
+AGN_withAGN = Lum2Flux(
+  wave = foo$bestfit$SEDout$AGN$wave,
+  lum = foo$bestfit$SEDout$AGN$lum,
+  z = Redshift,
+  ref = "737"
+)
+stars_withAGN = Lum2Flux(
+  wave = foo$bestfit$SEDout$StarsUnAtten$wave,
+  lum = foo$bestfit$SEDout$StarsUnAtten$lum,
+  z = Redshift,
+  ref = "737"
+)
+stars_withoutAGN = Lum2Flux(
+  wave = bar$bestfit$SEDout$StarsUnAtten$wave,
+  lum = bar$bestfit$SEDout$StarsUnAtten$lum,
+  z = Redshift,
+  ref = "737"
+)
+
+fwrite(photometry,
+       "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/sed_data/phot_galaxy.csv")
+fwrite(sed_withAGN,
+       "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/sed_data/sed_withAGN.csv")
+fwrite(sed_withoutAGN,
+       "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/sed_data/sed_withoutAGN.csv")
+fwrite(AGN_withAGN,
+       "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/sed_data/agnlum_withAGN.csv")
+fwrite(stars_withAGN,
+       "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/sed_data/stars_withAGN.csv")
+fwrite(stars_withoutAGN,
+       "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/sed_data/stars_withoutAGN.csv")
+
+
+BIC_withAGN = length(foo$bestfit$parm) * log(length(foo$bestfit$Data$flux$cenwave)) -
+  2 * foo$bestfit$LP
+
+BIC_withoutAGN = length(bar$bestfit$parm) * log(length(bar$bestfit$Data$flux$cenwave)) -
+  2 * bar$bestfit$LP
+
+bar$highlander$LP
+
+
+photometry$flux
+
+wavelength_grid = seq(0,5.5, 0.001) * 1e4
+transmission_curves = lapply(
+  foo$bestfit$Data$filtout,
+  function(x){ x(wavelength_grid) }
+)
+
+names(transmission_curves) = foo$bestfit$Data$flux$filter
+fwrite(
+  data.frame(
+    bind_cols(
+      "lambda" = wavelength_grid,
+      transmission_curves
+    )
+  ),
+  "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/sed_data/transmission_curves.csv"
+)

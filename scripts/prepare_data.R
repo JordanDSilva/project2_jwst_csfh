@@ -321,3 +321,31 @@ fwrite(galaxies, file = "~/Documents/CSFH_CAGNH_JWST/Data/highz_photometry_cat.c
 galaxies = data.frame( fread("~/Documents/CSFH_CAGNH_JWST/Data//highz_photometry_cat.csv") )
 
 
+
+foobar = readRDS("/Users/22252335/Documents/PROJ2_JWST_CSFH/ProSpectOut/withAGN/gal_1_1345002001_NRCB.rds")
+
+magplot(
+  foobar$bestfit$SEDout$FinalFlux[, ],
+  log = "xy", type = "l"
+)
+
+idx_wave_length = which(
+  (
+    foobar$bestfit$SEDout$FinalFlux$wave  / (1 + foobar$bestfit$Data$arglist$z) <= (1500 + 50)
+  )
+  &
+    (
+      foobar$bestfit$SEDout$FinalFlux$wave  / (1 + foobar$bestfit$Data$arglist$z) >= (1500 - 50)
+    )
+)
+
+magplot(
+  foobar$bestfit$SEDout$FinalFlux[idx_wave_length, ],
+  log = "xy", type = "l"
+)
+
+UV_flux_sum = sum(
+  foobar$bestfit$SEDout$FinalFlux$flux[idx_wave_length]
+)
+
+-2.5 * log10(UV_flux_sum) + 8.9

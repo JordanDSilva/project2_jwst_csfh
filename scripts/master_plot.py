@@ -3,6 +3,7 @@ import pandas as pd
 
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as grplt
+import matplotlib.cm as cm
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from scipy import stats
 
@@ -36,6 +37,7 @@ def load_data():
     data_drive = main_stub + "data/save/"
     catalogue_drive = main_stub + "data/catalogues/"
     literature_drive = main_stub + "data/literature/"
+    sed_drive = main_stub + "data/sed_data/"
 
     CSFH_data = pd.read_csv(
         data_drive + "/jwst_csfh_data.csv"
@@ -115,6 +117,16 @@ def load_data():
     thorne2021_fitting = pd.read_csv(
         literature_drive + "/thorne21_fitting_csfh.csv"
     )
+
+    sed_data = {
+        "phot" : pd.read_csv(sed_drive + "/phot_galaxy.csv"),
+        "sed_withAGN" : pd.read_csv(sed_drive + "/sed_withAGN.csv"),
+        "sed_withoutAGN" : pd.read_csv(sed_drive + "/sed_withoutAGN.csv"),
+        "stars_withAGN" : pd.read_csv(sed_drive + "/stars_withAGN.csv"),
+        "stars_withoutAGN" : pd.read_csv(sed_drive + "/stars_withoutAGN.csv"),
+        "agn_withAGN" : pd.read_csv(sed_drive + "/agnlum_withAGN.csv"),
+        "transmission_curves" : pd.read_csv(sed_drive + "/transmission_curves.csv")
+    }
     return(
         {
             "CSFH" : CSFH_data,
@@ -139,7 +151,9 @@ def load_data():
             "bouwens2023" : bouwens2023,
             "adams2023" : adams2023,
 
-            "thorne2021_fitting" : thorne2021_fitting
+            "thorne2021_fitting" : thorne2021_fitting,
+
+            "sed" : sed_data
         }
     )
 
@@ -363,9 +377,9 @@ def plot_mstar(data):
             0,8, hatch = "\\", facecolor="grey", edgecolor="black", alpha = 0.3
         )
 
-        ax[0, i].set_xlim([4.5, 12.5])
+        ax[0, i].set_xlim([3.5, 12.5])
         ax[0, i].set_ylim([4.5, 12.5])
-        ax[0, i].set_xticks([6, 8, 10, 12])
+        ax[0, i].set_xticks([4, 6, 8, 10, 12])
         ax[0, i].set_yticks([6, 8, 10, 12])
         ax[0,i].set_yticklabels([r'$10^{{{:n}}}$'.format(i) for i in ax[0,i].get_yticks()])
         ax[0, i].set_xticklabels([r'$10^{{{:n}}}$'.format(i) for i in ax[0, i].get_xticks()])
@@ -427,10 +441,10 @@ def plot_mstar(data):
         )
 
         ax[1, i].axhline(0.0, color="black", ls = "--")
-        ax[1, i].set_xlim([4.5, 12.5])
-        ax[1, i].set_ylim([-0.5, 5.0])
-        ax[1, i].set_xticks([6, 8, 10, 12])
-        ax[1, i].set_yticks([0, 2, 4])
+        ax[1, i].set_xlim([3.5, 12.5])
+        ax[1, i].set_ylim([-5, 1.0])
+        ax[1, i].set_xticks([4, 6, 8, 10, 12])
+        ax[1, i].set_yticks([-4, -2, 0])
         ax[1, i].set_xticklabels([r'$10^{{{:n}}}$'.format(i) for i in ax[1, i].get_xticks()])
         ax[1,i].xaxis.set_tick_params(pad=5)
 
@@ -467,12 +481,12 @@ def plot_mstar(data):
 
     inset_axes_font_size = 16.0
     ax0_inset = inset_axes(ax[1,2], width="80%", height="5%",
-                           loc="center", bbox_to_anchor=(0.0, 0.2, 1, 1),
+                           loc="center", bbox_to_anchor=(0.0, 0.0, 1, 1),
                            bbox_transform=ax[1,2].transAxes
                            )
     cbar = fig.colorbar(ax0, cax=ax0_inset, orientation='horizontal', ticks=[35, 37, 39, 41, 43, 45])
     cbar.ax.tick_params(labelsize=inset_axes_font_size, pad=5)
-    ax0_inset.text(5.5, 4.0, "$\\rm{ \\log_{10}(L_{AGN} \\, / \\, erg \\, s^{-1}) }$",
+    ax0_inset.text(4.5, -4.0, "$\\rm{ \\log_{10}(L_{AGN} \\, / \\, erg \\, s^{-1}) }$",
                    transform=ax[1,2].transData, fontsize=inset_axes_font_size)
 
     ax[0,0].set_ylabel(
@@ -518,7 +532,7 @@ def plot_sfms(data):
             color="grey",
             alpha = 0.5,
             s = 5.0,
-            label = "DEVILSD10 z>5"
+            label = "DEVILSD10 $z \\geq 5$"
         )
 
         redshift_idx = np.where(
@@ -895,12 +909,125 @@ def plot_delta_sfr(data):
         main_stub + "plots/delta_sfr.pdf"
     )
 
+def plot_sed(data):
+
+    sed_data = data["sed"]
+    transmission_curves = sed_data["transmission_curves"]
+
+    phot = sed_data["phot"]
+    sed_withAGN = sed_data["sed_withAGN"]
+    sed_withoutAGN = sed_data["sed_withoutAGN"]
+
+    stars_withAGN = sed_data["stars_withAGN"]
+    stars_withoutAGN = sed_data["stars_withoutAGN"]
+
+    agn_withAGN = sed_data["agn_withAGN"]
+
+    fig, ax = plt.subplots(nrows = 2, ncols=1, figsize=(8,6), constrained_layout=True, height_ratios=(3,1), sharex=True)
+    ax[0].set_title("CEERS_1019, z=8.679")
+
+    cmap = cm.get_cmap(name='rainbow')
+    print(transmission_curves.keys())
+    len_filt = len(transmission_curves.keys()) - 1
+    for i in range(len_filt):
+        temp = transmission_curves.iloc[:, i + 1].to_numpy()
+        idx = (temp > 0.01)
+        transmission = temp[idx] / np.nanmax(temp[idx])
+        ax[0].plot(
+            transmission_curves["lambda"][idx] / 1e4,
+            (transmission) * 0.2 - 0.21,
+            color=cmap(i / len_filt),
+            alpha=0.5,
+            ls = "-"
+        )
+
+    ax[0].errorbar(
+        phot["lambda"]/1e4,
+        phot["flux"]/1e-19,
+        phot["flux_err"]/1e-19,
+        fmt = "o",
+        color = "black",
+        capsize = 3,
+        uplims = np.array([np.nan, np.nan,1,np.nan, 1,np.nan, np.nan, 0,0,0,0,0,0,0,0,0,0])
+    )
+    ax[0].plot(
+        sed_withAGN["wave"]/1e4,
+        sed_withAGN["flux"]/1e-19,
+        linewidth = 3,
+        color = "tab:red",
+        linestyle = "-",
+        alpha = 0.7,
+        label = "Pro Stellar+AGN (LP = -6.28)"
+    )
+    ax[0].plot(
+        sed_withoutAGN["wave"] / 1e4,
+        sed_withoutAGN["flux"] / 1e-19,
+        linewidth=3,
+        color="tab:blue",
+        linestyle="-",
+        alpha = 0.7,
+        label="Pro Stellar (LP = -7.58)"
+    )
+    ax[0].plot(
+        agn_withAGN["wave"]/1e4,
+        agn_withAGN["flux"]/1e-19,
+        linewidth=3,
+        color = "tab:purple",
+        alpha = 0.7,
+        label = "AGN flux"
+    )
+
+    # ax[0].text(
+    #     -0.3, 0.65,
+    #     "Larson+23 $\\rm{L_{AGN}}$: \n $\\rm{45.10 \\pm 0.20}$",
+    #     fontsize = 16
+    # )
+    # ax[0].text(
+    #     -0.3, 0.5,
+    #     "ProSpect $\\rm{L_{AGN}}$: \n $\\rm{45.02 \\pm 2.35}$",
+    #     fontsize = 16
+    # )
+
+    ax[0].legend(fontsize = 18)
+
+    ax[0].set_xlim([0.0,5.1])
+    ax[0].set_ylim([-0.2,0.9])
+    ax[0].set_yticks([0,0.4,0.8])
+    # ax[0].set_yscale("log")
+
+    ax[0].set_ylabel("$\\rm{F_{\\lambda} \\, / \\, 10^{-19} erg \\, s^{-1} \\, cm^{-2} \\, \\AA^{-1}}$")
+
+
+    ax[1].scatter(
+        phot["lambda"]/1e4,
+        (phot["flux"] - phot["sed_withAGN"]) / phot["flux_err"],
+        color = "tab:red",
+        alpha = 0.7
+    )
+    ax[1].scatter(
+        phot["lambda"] / 1e4,
+        (phot["flux"] - phot["sed_withoutAGN"]) / phot["flux_err"],
+        color="tab:blue",
+        alpha = 0.7
+    )
+    ax[1].axhline(0, ls = "--", color="grey")
+    ax[1].set_ylim([-10,10])
+    ax[1].set_yticks([-5,0,5])
+    ax[1].set_ylabel("$\\rm{\\frac{Data-Model}{Err}}$")
+
+    fig.supxlabel("Wavelength/$\\rm{\\mu m}$")
+
+    fig.savefig(main_stub + "/plots/SED_galaxy.pdf")
+
 def main():
+    print("Main script")
+
     data = load_data()
-    plot_csfh(data)
+    # plot_csfh(data)
     # plot_mstar(data)
     # plot_sfms(data)
     # plot_delta_sfr(data)
+    plot_sed(data)
 
 
 if __name__ == "__main__":

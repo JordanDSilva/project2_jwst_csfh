@@ -11,6 +11,7 @@ library(dplyr)
 library(magicaxis)
 library(hyper.fit)
 
+set.seed(667)
 registerDoParallel(cores = 5)
 ## Analysis script
 ## Actually do the analysis here 
@@ -283,9 +284,9 @@ spline_fit_mstar = function(zedge_min, zedge_max, with_agn, without_agn, df = 2)
       "q16_fit" = q16_fit,
       "q84_fit" = q84_fit,
       
-      "delta_mstar" = med_fit - test_mstar,
-      "delta_mstar_q16_fit" = q16_fit - test_mstar,
-      "delta_mstar_q84_fit" = q84_fit - test_mstar,
+      "delta_mstar" = test_mstar - med_fit,
+      "delta_mstar_q16_fit" = test_mstar - q16_fit,
+      "delta_mstar_q84_fit" = test_mstar - q84_fit,
       
       # "hf_fit" = hf$func(cbind(test_mstar)),
       # "hf_fit_q16" = hf$func(cbind(test_mstar)) - hf$parm[3],
@@ -296,7 +297,7 @@ spline_fit_mstar = function(zedge_min, zedge_max, with_agn, without_agn, df = 2)
         with_agn_err = xdata_err,
         without_agn = ydata,
         without_agn_err = ydata_err,
-        delta_mstar = ydata - xdata,
+        delta_mstar = xdata - ydata,
         delta_mstar_err = sqrt(ydata_err^2 + xdata_err^2)
       ),
       "spline_fun" = splinefun(x = test_mstar, med_fit)
