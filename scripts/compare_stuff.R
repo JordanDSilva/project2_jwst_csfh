@@ -121,8 +121,19 @@ match_withAGN = withAGN[match_literature$bestmatch$compareID, ]
 match_withoutAGN = withoutAGN[match_literature$bestmatch$compareID, ]
 match_harikane = literature_galaxies[match_literature$bestmatch$refID, ]
 
+agn_frac = foreach(i = 1:dim(match_withAGN)[1], .combine = "c")%do%{
+  temp = readRDS(paste0("/Users/22252335/Documents/PROJ2_JWST_CSFH/ProSpectOut/withAGN/gal_",
+                        match_withAGN$COLID[i], "_", match_withAGN$VISITID[i], "_", match_withAGN$MODULE[i], ".rds"))
+
+  agnfrac = sum(temp$bestfit$SEDout$AGN$lum[temp$bestfit$SEDout$AGN$wave > 5e4 & temp$bestfit$SEDout$AGN$wave < 24e4]) /
+  sum(temp$bestfit$SEDout$FinalLum$lum[temp$bestfit$SEDout$FinalLum$wave > 5e4 & temp$bestfit$SEDout$FinalLum$wave < 24e4])
+
+  agnfrac
+}
+
 png("/Users/22252335/Documents/PROJ2_JWST_CSFH/plots/agnlum_compare_harikane.png",
     width = 10, height = 8, units = "in", res = 240)
+par(mfrow = c(1,2), oma = c(3.5,2.5,1.5,1.5), mar = c(3.5,3.5,0.5,0.5))
 magplot(
   log10(match_withAGN$AGNlum50),
   log10(match_harikane$AGNLum),
@@ -355,8 +366,21 @@ which.max(
 foo = readRDS("/Users/22252335/Documents/PROJ2_JWST_CSFH/ProSpectOut/withAGN/gal_10_1345068001_NRCA.rds")
 bar = readRDS("/Users/22252335/Documents/PROJ2_JWST_CSFH/ProSpectOut/withoutAGN/gal_10_1345068001_NRCA.rds")
 
-c_light = 299792458
 Redshift = foo$bestfit$Data$arglist$z
+
+sed_withoutAGN = Lum2Flux(
+  wave = bar$bestfit$SEDout$FinalLum$wave,
+  lum = bar$bestfit$SEDout$FinalLum$lum,
+  z = Redshift,
+  ref = "737"
+)
+sed_withAGN = Lum2Flux(
+  wave = foo$bestfit$SEDout$FinalLum$wave,
+  lum = foo$bestfit$SEDout$FinalLum$lum,
+  z = Redshift,
+  ref = "737"
+)
+c_light = 299792458
 
 cenwave = foo$bestfit$Data$flux$cenwave
 photom = Jansky2CGS(foo$bestfit$Data$flux$flux) * (c_light / (foo$bestfit$Data$flux$cenwave * 1e-10)^2) / 1e10
@@ -364,38 +388,13 @@ photom_err = Jansky2CGS(foo$bestfit$Data$flux$fluxerr) * (c_light / (foo$bestfit
 sedflux_withAGN = photom_flux(wave = sed_withAGN$wave, flux = sed_withAGN$flux, filters = foo$bestfit$Data$flux$filter, outtype = "CGS") * (c_light / (foo$bestfit$Data$flux$cenwave * 1e-10)^2) / 1e10
 sedflux_withoutAGN = photom_flux(wave = sed_withoutAGN$wave, flux = sed_withoutAGN$flux, filters = bar$bestfit$Data$flux$filter, outtype = "CGS") * (c_light / (bar$bestfit$Data$flux$cenwave * 1e-10)^2) / 1e10
 
+
 photometry = data.frame(
   "lambda" = cenwave,
   "flux" = photom,
   "flux_err" = photom_err,
   "sed_withAGN" = sedflux_withAGN,
   "sed_withoutAGN" = sedflux_withoutAGN
-)
-
-foo$bestfit$LP - bar$bestfit$LP
-
-sum(
- (photometry$flux - photometry$sed_withAGN)^2 / (photometry$flux_err)^2, na.rm = T
-) / (length(foo$bestfit$parm)-1)
-
-sum(
- (photometry$flux - photometry$sed_withoutAGN)^2 / (photometry$flux_err)^2, na.rm = T
-) / (length(bar$bestfit$parm)-1)
-
-sed_withAGN = Lum2Flux(
-  wave = foo$bestfit$SEDout$FinalLum$wave,
-  lum = foo$bestfit$SEDout$FinalLum$lum,
-  z = Redshift,
-  ref = "737"
-)
-
-magplot(
-  cenwave/1e4,
-  photom/1e-19
-)
-points(
-  cenwave/1e4,
-  test/1e-19, pch=16
 )
 
 sed_withoutAGN = Lum2Flux(
@@ -423,6 +422,22 @@ stars_withoutAGN = Lum2Flux(
   ref = "737"
 )
 
+(photometry$flux - photometry$sed_withAGN)/photometry$flux_err
+magplot(photometry$lambda, photometry$flux)
+lines(photometry$lambda, photometry$sed_withAGN)
+lines(sed_withAGN, col="red")
+
+
+magplot(
+  sed_withAGN, log="xy", type="l", xlim = c(1e3, 1e5), ylim = c(1e-22, 1e-17)
+)
+lines(
+  AGN_withAGN, col="purple"
+)
+points(
+  photometry$lambda,
+  photometry$sed_withAGN
+)
 fwrite(photometry,
        "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/sed_data/phot_galaxy.csv")
 fwrite(sed_withAGN,
@@ -437,16 +452,6 @@ fwrite(stars_withoutAGN,
        "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/sed_data/stars_withoutAGN.csv")
 
 
-BIC_withAGN = length(foo$bestfit$parm) * log(length(foo$bestfit$Data$flux$cenwave)) -
-  2 * foo$bestfit$LP
-
-BIC_withoutAGN = length(bar$bestfit$parm) * log(length(bar$bestfit$Data$flux$cenwave)) -
-  2 * bar$bestfit$LP
-
-bar$highlander$LP
-
-
-photometry$flux
 
 wavelength_grid = seq(0,5.5, 0.001) * 1e4
 transmission_curves = lapply(

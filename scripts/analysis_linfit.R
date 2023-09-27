@@ -18,7 +18,7 @@ registerDoParallel(cores = 5)
 
 galaxies = data.frame( fread("~/Documents/PROJ2_JWST_CSFH/data/catalogues/high_z_profound.csv") )
 
-load_with_agn = fread("~/Documents/PROJ2_JWST_CSFH/data/catalogues/ProSpect_highz_withAGN.csv")
+load_with_agn = fread("~/Documents/PROJ2_JWST_CSFH/data/catalogues/ProSpect_highz__withAGN.csv")
 load_without_agn = fread("~/Documents/PROJ2_JWST_CSFH/data/catalogues/ProSpect_highz_withoutAGN.csv")
 
 zedges = c(3.5, 6.5, 9.5, 12.5)
@@ -57,7 +57,7 @@ zlist_hi = c(
 redshift_data = data.frame(list(
   z = zlist,
   z16 = zlist_lo,
-  z84 = zlist_hi,
+  z74 = zlist_hi,
   zmin = zlist_min,
   zmax = zlist_max
 ))
@@ -90,13 +90,13 @@ spline_fit = function(zedge_min, zedge_max, data, key, df){
   
   Nsamples = 1001
   spline_data = foreach(i = 1:Nsamples, .combine = "rbind")%dopar%{
-    xx = xdata + rnorm(length(xdata), mean = 0, sd = xdata_err)
-    yy = ydata + rnorm(length(ydata), mean = 0, sd = ydata_err)
-    
-    idx = xx>= 8
-    
+    midx = xdata >= 8
+
+    xx = xdata[midx] + rnorm(length(xdata[midx]), mean = 0, sd = xdata_err[midx])
+    yy = ydata[midx] + rnorm(length(ydata[midx]), mean = 0, sd = ydata_err[midx])
+
     fit = smooth.spline(
-      xx[idx], yy[idx], df = df, w = 1/(ydata_err[idx]^2 + xdata_err[idx]^2)
+      xx, yy, df = df, w = 1/(ydata_err[midx]^2 + xdata_err[midx]^2), lambda = 0.8
     )
     out = predict(fit, test_mstar)
     out$y
@@ -130,7 +130,7 @@ fit_data = list()
 fit_data$withAGN$z5=spline_fit(zedge_min = zedges[1], zedge_max = zedges[2], 
                                data = load_with_agn, key = "SFRBurst",
                                df = df)
-fit_data$withAGN$z8=spline_fit(zedge_min = zedges[2], zedge_max = zedges[3], 
+fit_data$withAGN$z7=spline_fit(zedge_min = zedges[2], zedge_max = zedges[3], 
                                  data = load_with_agn, key = "SFRBurst",
                                  df = df)
 fit_data$withAGN$z10=spline_fit(zedge_min = zedges[3], zedge_max = zedges[4], 
@@ -140,7 +140,7 @@ fit_data$withAGN$z10=spline_fit(zedge_min = zedges[3], zedge_max = zedges[4],
 fit_data$withoutAGN$z5=spline_fit(zedge_min = zedges[1], zedge_max = zedges[2], 
                                  data = load_without_agn, key = "SFRBurst",
                                  df = df)
-fit_data$withoutAGN$z8=spline_fit(zedge_min = zedges[2], zedge_max = zedges[3], 
+fit_data$withoutAGN$z7=spline_fit(zedge_min = zedges[2], zedge_max = zedges[3], 
                                  data = load_without_agn, key = "SFRBurst",
                                  df = df)
 fit_data$withoutAGN$z10=spline_fit(zedge_min = zedges[3], zedge_max = zedges[4], 
@@ -150,14 +150,51 @@ fit_data$withoutAGN$z10=spline_fit(zedge_min = zedges[3], zedge_max = zedges[4],
 smf_z5 = dfmodel(fit_data$withAGN$z5$test_mstar, p = c(log10(5.16e-5), 10.97, -1.70)) # https://arxiv.org/pdf/1507.05636.pdf
 smf_z6 = dfmodel(fit_data$withAGN$z5$test_mstar, p = c(-4.09, 10.24, -1.88)) # https://arxiv.org/pdf/2103.16571.pdf
 smf_z7 = dfmodel(fit_data$withAGN$z5$test_mstar, p = c(-4.14, 10.04, -1.73))
-smf_z8 = dfmodel(fit_data$withAGN$z5$test_mstar, p = c(-4.69, 9.98, -1.82))
+smf_z7 = dfmodel(fit_data$withAGN$z5$test_mstar, p = c(-4.69, 9.98, -1.82))
 smf_z9 = dfmodel(fit_data$withAGN$z5$test_mstar, p = c(-5.12, 9.50, -2.00))
 smf_z10 = dfmodel(fit_data$withAGN$z5$test_mstar, p = c(-6.13, 9.50, -2.00))
+
+smf_z5_cosmos = dfmodel(fit_data$withAGN$z5$test_mstar, p = c(log10(0.14e-3), 10.30, -1.46)) # https://arxiv.org/pdf/2212.02512.pdf
+smf_z6_cosmos = dfmodel(fit_data$withAGN$z5$test_mstar, p = c(log10(0.06e-3), 10.14, -1.46)) # Weaver+23
+smf_z7_cosmos = dfmodel(fit_data$withAGN$z5$test_mstar, p = c(log10(0.03e-3), 10.18, -1.46)) # Uses CHABRIER IMF
+
+
 smfs = list(smf_z5, smf_z7, smf_z10)
+# smfs = list(smf_z5_cosmos, smf_z7_cosmos, smf_z10)
+# chabrer_conversion = c(1.0, 1.0, 1.0/1.53)
+chabrer_conversion = c(1.0/1.53, 1.0/1.53, 1.0/1.53)
+
+png("/Users/22252335/Desktop/smfs.png", width = 12, height = 6, res = 240, units="in")
+par(mfrow = c(1,2), oma = c(3.5, 3.5, 1.5, 1.5), mar = rep(2.5, 4))
+magplot(
+  test_mstar, smf_z5 * 1/1.53, log="y", type="l", xlim = c(6.5, 12.5), ylim = 10^c(-6.5,0.5),
+  main = "z=5"
+)
+lines(
+  test_mstar, smf_z5_cosmos, lty=2
+)
+
+magplot(
+  test_mstar, smf_z7 * 1/1.53, log="y", type="l", xlim = c(6.5, 12.5), ylim = 10^c(-6.5,0.5),
+    main = "z=7"
+)
+lines(
+  test_mstar, smf_z7_cosmos, lty=2
+)
+legend(
+  x = "topright",
+  c("Song+15 (z=5), Stefanon+21 (z=7)",
+    "Weaver=23 COSMOS2020"),
+  lty = c(1,2)
+)
+dev.off()
+
+
+
 
 # devilsd10 = fread("/Volumes/JordanData/PhD/GAMA-DEVILS/CSFRD Compendium/GAMA-DEVILS/devilsd10_super.csv")
 
-calc_csfh = function(data, smf){
+calc_csfh = function(data, smf, convert_chabrier=1){
   
   idx = data$test_mstar >= 0.0
   
@@ -166,51 +203,54 @@ calc_csfh = function(data, smf){
   q84_csfh = sum( smf[idx] * 10^data$q84_fit[idx] * dlogM ) 
   
   list(
-    "med_csfh" = log10(med_csfh) + log10(1/1.53),
+    # "med_csfh" = log10(med_csfh) + log10(1/1.53),
+    "med_csfh" = log10(med_csfh * convert_chabrier),
     "q16_csfh" = (med_csfh - q16_csfh)/(log(10)*med_csfh),
     "q84_csfh" = (q84_csfh - med_csfh)/(log(10)*med_csfh) 
   )
 }
 
+redshift_data
+
 csfh = list()
 
-csfh$withAGN$z5 = calc_csfh(fit_data$withAGN$z5, smfs[[1]]) 
-csfh$withAGN$z8 = calc_csfh(fit_data$withAGN$z8, smfs[[2]]) 
-csfh$withAGN$z10 = calc_csfh(fit_data$withAGN$z10, smfs[[3]]) 
+csfh$withAGN$z5 = calc_csfh(fit_data$withAGN$z5, smfs[[1]], convert_chabrier = chabrer_conversion[1])
+csfh$withAGN$z7 = calc_csfh(fit_data$withAGN$z7, smfs[[2]], convert_chabrier = chabrer_conversion[2])
+csfh$withAGN$z10 = calc_csfh(fit_data$withAGN$z10, smfs[[3]], convert_chabrier = chabrer_conversion[3])
 
-csfh$withoutAGN$z5 = calc_csfh(fit_data$withoutAGN$z5, smfs[[1]]) 
-csfh$withoutAGN$z8 = calc_csfh(fit_data$withoutAGN$z8, smfs[[2]]) 
-csfh$withoutAGN$z10 = calc_csfh(fit_data$withoutAGN$z10, smfs[[3]]) 
+csfh$withoutAGN$z5 = calc_csfh(fit_data$withoutAGN$z5, smfs[[1]], convert_chabrier = chabrer_conversion[1])
+csfh$withoutAGN$z7 = calc_csfh(fit_data$withoutAGN$z7, smfs[[2]], convert_chabrier = chabrer_conversion[2])
+csfh$withoutAGN$z10 = calc_csfh(fit_data$withoutAGN$z10, smfs[[3]], convert_chabrier = chabrer_conversion[3])
 
 csfh$withAGN$med = c(
   csfh$withAGN$z5$med_csfh,
-  csfh$withAGN$z8$med_csfh,
+  csfh$withAGN$z7$med_csfh,
   csfh$withAGN$z10$med_csfh
 )
 csfh$withAGN$q16 = c(
   csfh$withAGN$z5$q16_csfh,
-  csfh$withAGN$z8$q16_csfh,
+  csfh$withAGN$z7$q16_csfh,
   csfh$withAGN$z10$q16_csfh
 )
 csfh$withAGN$q84 = c(
   csfh$withAGN$z5$q84_csfh,
-  csfh$withAGN$z8$q84_csfh,
+  csfh$withAGN$z7$q84_csfh,
   csfh$withAGN$z10$q84_csfh
 )
 
 csfh$withoutAGN$med = c(
   csfh$withoutAGN$z5$med_csfh,
-  csfh$withoutAGN$z8$med_csfh,
+  csfh$withoutAGN$z7$med_csfh,
   csfh$withoutAGN$z10$med_csfh
 )
 csfh$withoutAGN$q16 = c(
   csfh$withoutAGN$z5$q16_csfh,
-  csfh$withoutAGN$z8$q16_csfh,
+  csfh$withoutAGN$z7$q16_csfh,
   csfh$withoutAGN$z10$q16_csfh
 )
 csfh$withoutAGN$q84 = c(
   csfh$withoutAGN$z5$q84_csfh,
-  csfh$withoutAGN$z8$q84_csfh,
+  csfh$withoutAGN$z7$q84_csfh,
   csfh$withoutAGN$z10$q84_csfh
 )
 
@@ -245,31 +285,21 @@ spline_fit_mstar = function(zedge_min, zedge_max, with_agn, without_agn, df = 2)
   
   Nsamples = 1001
   spline_data = foreach(i = 1:Nsamples, .combine = "rbind")%dopar%{
-    xx = xdata + rnorm(length(xdata), mean = 0, sd = xdata_err)
-    yy = ydata + rnorm(length(ydata), mean = 0, sd = ydata_err)
-    
-    idx = xdata>=8 & ydata>=8
-    # idx = xx>=8 & yy>=8
+
+    midx = xdata>=8 & ydata>=8
+
+    xx = xdata[midx] + rnorm(length(xdata[midx]), mean = 0, sd = xdata_err[midx])
+    yy = ydata[midx] + rnorm(length(ydata[midx]), mean = 0, sd = ydata_err[midx])
+     # idx = xx>=8 & yy>=8
     
     fit = smooth.spline(
-      xx[idx], yy[idx], df = df, w = 1/(ydata_err[idx]^2 + xdata_err[idx]^2)
+      xx, yy, df = df, w = 1/(ydata_err[midx]^2 + xdata_err[midx]^2)
     )
     out = predict(fit, test_mstar)
     out$y
   }
   
-  idx_hf = xdata >= 8 & ydata >= 8
-  hf = hyper.fit(
-    X = cbind(
-      xdata[idx_hf], 
-      ydata[idx_hf]
-    ),
-    vars = cbind(
-      xdata_err[idx_hf]^2,
-      ydata_err[idx_hf]^2
-    )
-  )
-  
+
   print(dim(spline_data))
   med_fit = colQuantiles(matrix(spline_data, nrow = Nsamples, ncol = length(test_mstar)), 
                          probs = 0.5)
@@ -308,7 +338,7 @@ spline_fit_mstar = function(zedge_min, zedge_max, with_agn, without_agn, df = 2)
 df_mstar = 3
 mstar_fit_data = list()
 mstar_fit_data$z5=spline_fit_mstar(3.5, 6.5, load_with_agn, load_without_agn, df_mstar)
-mstar_fit_data$z8=spline_fit_mstar(6.5, 9.5, load_with_agn, load_without_agn, df_mstar)
+mstar_fit_data$z7=spline_fit_mstar(6.5, 9.5, load_with_agn, load_without_agn, df_mstar)
 mstar_fit_data$z10=spline_fit_mstar(9.5, 12.5, load_with_agn, load_without_agn, df_mstar)
 
 
@@ -340,9 +370,9 @@ mstar_mstar_fits = data.frame(
   "z5_q16" = mstar_fit_data$z5$q16_fit,
   "z5_q84" = mstar_fit_data$z5$q84_fit,
   
-  "z8_fit" = mstar_fit_data$z8$fit_mstar,
-  "z8_q16" = mstar_fit_data$z8$q16_fit,
-  "z8_q84" = mstar_fit_data$z8$q84_fit,
+  "z7_fit" = mstar_fit_data$z7$fit_mstar,
+  "z7_q16" = mstar_fit_data$z7$q16_fit,
+  "z7_q84" = mstar_fit_data$z7$q84_fit,
   
   "z10_fit" = mstar_fit_data$z10$fit_mstar,
   "z10_q16" = mstar_fit_data$z10$q16_fit,
@@ -361,12 +391,12 @@ fwrite(
   "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/save/mstar_z5.csv"
 )
 
-mstar_z8 = data.frame(
-  mstar_fit_data$z8$input_data
+mstar_z7 = data.frame(
+  mstar_fit_data$z7$input_data
 )
 fwrite(
-  mstar_z8,
-  "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/save/mstar_z8.csv"
+  mstar_z7,
+  "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/save/mstar_z7.csv"
 )
 
 mstar_z10 = data.frame(
@@ -384,9 +414,9 @@ sfs_fits = data.frame(
   "z5_withAGN_q16" = fit_data$withAGN$z5$q16_fit,
   "z5_withAGN_q84" = fit_data$withAGN$z5$q84_fit,
   
-  "z8_withAGN" = fit_data$withAGN$z8$med_fit,
-  "z8_withAGN_q16" = fit_data$withAGN$z8$q16_fit,
-  "z8_withAGN_q84" = fit_data$withAGN$z8$q84_fit,
+  "z7_withAGN" = fit_data$withAGN$z7$med_fit,
+  "z7_withAGN_q16" = fit_data$withAGN$z7$q16_fit,
+  "z7_withAGN_q84" = fit_data$withAGN$z7$q84_fit,
   
   "z10_withAGN" = fit_data$withAGN$z10$med_fit,
   "z10_withAGN_q16" = fit_data$withAGN$z10$q16_fit,
@@ -396,9 +426,9 @@ sfs_fits = data.frame(
   "z5_withoutAGN_q16" = fit_data$withoutAGN$z5$q16_fit,
   "z5_withoutAGN_q84" = fit_data$withoutAGN$z5$q84_fit,
   
-  "z8_withoutAGN" = fit_data$withoutAGN$z8$med_fit,
-  "z8_withoutAGN_q16" = fit_data$withoutAGN$z8$q16_fit,
-  "z8_withoutAGN_q84" = fit_data$withoutAGN$z8$q84_fit,
+  "z7_withoutAGN" = fit_data$withoutAGN$z7$med_fit,
+  "z7_withoutAGN_q16" = fit_data$withoutAGN$z7$q16_fit,
+  "z7_withoutAGN_q84" = fit_data$withoutAGN$z7$q84_fit,
   
   "z10_withoutAGN" = fit_data$withoutAGN$z10$med_fit,
   "z10_withoutAGN_q16" = fit_data$withoutAGN$z10$q16_fit,
@@ -425,20 +455,20 @@ fwrite(
   "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/save/sfs_z5.csv"
 )
 
-z8_sfs_data = data.frame(
-  "withAGN_mstar" = fit_data$withAGN$z8$input_data$mstar,
-  "withAGN_mstar_err" = fit_data$withAGN$z8$input_data$mstar_err,
-  "withAGN_sfr" = fit_data$withAGN$z8$input_data$ydata,
-  "withAGN_sfr_err" = fit_data$withAGN$z8$input_data$ydata_err,
+z7_sfs_data = data.frame(
+  "withAGN_mstar" = fit_data$withAGN$z7$input_data$mstar,
+  "withAGN_mstar_err" = fit_data$withAGN$z7$input_data$mstar_err,
+  "withAGN_sfr" = fit_data$withAGN$z7$input_data$ydata,
+  "withAGN_sfr_err" = fit_data$withAGN$z7$input_data$ydata_err,
   
-  "withoutAGN_mstar" = fit_data$withoutAGN$z8$input_data$mstar,
-  "withoutAGN_mstar_err" = fit_data$withoutAGN$z8$input_data$mstar_err,
-  "withoutAGN_sfr" = fit_data$withoutAGN$z8$input_data$ydata,
-  "withoutAGN_sfr_err" = fit_data$withoutAGN$z8$input_data$ydata_err
+  "withoutAGN_mstar" = fit_data$withoutAGN$z7$input_data$mstar,
+  "withoutAGN_mstar_err" = fit_data$withoutAGN$z7$input_data$mstar_err,
+  "withoutAGN_sfr" = fit_data$withoutAGN$z7$input_data$ydata,
+  "withoutAGN_sfr_err" = fit_data$withoutAGN$z7$input_data$ydata_err
 )
 fwrite(
-  z8_sfs_data,
-  "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/save/sfs_z8.csv"
+  z7_sfs_data,
+  "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/save/sfs_z7.csv"
 )
 
 z10_sfs_data = data.frame(
@@ -462,10 +492,20 @@ smf_data = data.frame(
   "z5_smf" = smf_z5,
   "z6_smf" = smf_z6,
   "z7_smf" = smf_z7,
-  "z8_smf" = smf_z8,
+  "z7_smf" = smf_z7,
   "z9_smf" = smf_z9,
   "z10_smf" = smf_z10
 )
+#
+# smf_data = data.frame(
+#   "mstar" = fit_data$withAGN$z5$test_mstar,
+#   "z5_smf" = smf_z5_cosmos,
+#   "z6_smf" = smf_z6_cosmos,
+#   "z7_smf" = smf_z7_cosmos,
+#   "z7_smf" = smf_z7,
+#   "z9_smf" = smf_z9,
+#   "z10_smf" = smf_z10
+# )
 fwrite(
   smf_data,
   "/Users/22252335/Documents/PROJ2_JWST_CSFH/data/save/smf_data.csv"

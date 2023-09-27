@@ -68,8 +68,8 @@ def load_data():
     sfs_z5 = pd.read_csv(
         data_drive + "/sfs_z5.csv"
     )
-    sfs_z8 = pd.read_csv(
-        data_drive + "/sfs_z8.csv"
+    sfs_z7 = pd.read_csv(
+        data_drive + "/sfs_z7.csv"
     )
     sfs_z10 = pd.read_csv(
         data_drive + "/sfs_z10.csv"
@@ -78,8 +78,8 @@ def load_data():
     mstar_z5 = pd.read_csv(
         data_drive + "/mstar_z5.csv"
     )
-    mstar_z8 = pd.read_csv(
-        data_drive + "/mstar_z8.csv"
+    mstar_z7 = pd.read_csv(
+        data_drive + "/mstar_z7.csv"
     )
     mstar_z10 = pd.read_csv(
         data_drive + "/mstar_z10.csv"
@@ -132,7 +132,7 @@ def load_data():
             "CSFH" : CSFH_data,
             "gama_devils" : gama_devils_data,
 
-            "mstar_data" : [mstar_z5, mstar_z8, mstar_z10],
+            "mstar_data" : [mstar_z5, mstar_z7, mstar_z10],
             "mstar_fits" : mstar_fits,
 
             "redshift_info" : redshift_info,
@@ -142,7 +142,7 @@ def load_data():
 
             "sfs_fits" : sfs_fits,
             "smfs" : smf_data,
-            "sfs" : [sfs_z5,sfs_z8,sfs_z10],
+            "sfs" : [sfs_z5,sfs_z7,sfs_z10],
 
             "devilsz5" : devilsz5,
 
@@ -159,8 +159,6 @@ def load_data():
 
 def plot_csfh(data):
     """Plot the CSFH"""
-
-    print(data["CSFH"].keys())
 
     colour_palette = {
         "main": "#4A4E69",
@@ -257,12 +255,12 @@ def plot_csfh(data):
     ax.errorbar(
         csfh["z"], csfh["CSFH_without_AGN"],
         yerr=[csfh["CSFH_without_AGN_q16"], [err_up[0], err_up[1], 0.0]],
-        xerr=[csfh["z"] - csfh["z16"], csfh["z84"] - csfh["z"]],
+        xerr=[csfh["z"] - csfh["z16"], csfh["z74"] - csfh["z"]],
         markersize=12,
         markerfacecolor="tab:blue",
         fmt="^",
         capsize=3,
-        label="Pro Stellar",
+        label="Stellar",
         alpha=1.0,
         ecolor="tab:blue",
         markeredgecolor="black",
@@ -284,12 +282,12 @@ def plot_csfh(data):
     ax.errorbar(
         csfh["z"]+0.05, csfh["CSFH_with_AGN"],
         yerr=[csfh["CSFH_with_AGN_q16"], [err_up[0], err_up[1], 0]],
-        xerr=[csfh["z"] - csfh["z16"], csfh["z84"] - csfh["z"]],
+        xerr=[csfh["z"] - csfh["z16"], csfh["z74"] - csfh["z"]],
         markersize = 12,
         markerfacecolor="tab:red",
         fmt="v",
         capsize=3,
-        label="Pro Stellar+AGN",
+        label="Stellar+AGN",
         alpha=1.0,
         ecolor="tab:red",
         markeredgecolor="black",
@@ -328,8 +326,6 @@ def plot_mstar(data):
     mstar_data = data["mstar_data"]
 
     mstar_fits = data["mstar_fits"]
-
-    print(mstar_fits.keys())
 
     norm = plt.Normalize()
     cm = plt.colormaps["RdYlBu_r"]
@@ -459,12 +455,12 @@ def plot_mstar(data):
         alpha = 0.5,
     )
     ax[0, 1].plot(
-        mstar_fits["test_mstar"], mstar_fits["z8_fit"],
+        mstar_fits["test_mstar"], mstar_fits["z7_fit"],
         color="blueviolet",
         linewidth=2
     )
     ax[0, 1].fill_between(
-        mstar_fits["test_mstar"], mstar_fits["z8_q16"], mstar_fits["z8_q84"],
+        mstar_fits["test_mstar"], mstar_fits["z7_q16"], mstar_fits["z7_q84"],
         color="blueviolet",
         alpha=0.5
     )
@@ -489,15 +485,61 @@ def plot_mstar(data):
     ax0_inset.text(4.5, -4.0, "$\\rm{ \\log_{10}(L_{AGN} \\, / \\, erg \\, s^{-1}) }$",
                    transform=ax[1,2].transData, fontsize=inset_axes_font_size)
 
+    ## try to plot inset axis :P
+    axins = ax[0, 2].inset_axes(
+        [0.3, 0.05, 0.6, 0.3],
+        xlim=[8.2, 9.6], ylim=[8.2, 9.6],
+        xticklabels=[], yticklabels=[],
+        # xticks = [9.0], yticks = [1.0],
+        # xticklabels=["$10^{8.5}$"], yticklabels=["$10^{1}$"]
+    )
+
+    axins.errorbar(
+        mstar_data[2]["with_agn"],
+        mstar_data[2]["without_agn"],
+        xerr=mstar_data[2]["with_agn_err"],
+        yerr=mstar_data[2]["without_agn_err"],
+        fmt="none",
+        ecolor="black",
+        alpha=0.5
+    )
+    axins.scatter(
+        mstar_data[2]["with_agn"],
+        mstar_data[2]["without_agn"],
+        edgecolors="black",
+        c=AGNlum,
+        vmin=min(AGNlum),
+        vmax=max(AGNlum),
+        cmap=cm,
+        zorder=200
+    )
+    axins.plot(
+        mstar_fits["test_mstar"], mstar_fits["z10_fit"],
+        color="blueviolet",
+        linewidth=2
+    )
+    axins.fill_between(
+        mstar_fits["test_mstar"], mstar_fits["z10_q16"], mstar_fits["z10_q84"],
+        color="blueviolet",
+        alpha=0.5
+    )
+    axins.plot(
+        [0,10], [0,10],
+        ls = "--",
+        color = "black"
+    )
+
+    ax[0, 2].indicate_inset_zoom(axins, edgecolor="black")
+
     ax[0,0].set_ylabel(
-        "$\\rm{ M_{\\star}^{Pro \\, Stellar} \\, / \\, M_{\\odot} }$",
+        "$\\rm{ M_{\\star}^{Stellar} \\, / \\, M_{\\odot} }$",
 
     )
     ax[1,0].set_ylabel(
         "$\\rm{\\Delta M_{\\star}}$"
     )
     fig.supxlabel(
-        "$\\rm{ M_{\\star}^{Pro \\, Stellar+AGN} \\, / \\, M_{\\odot} }$"
+        "$\\rm{ M_{\\star}^{Stellar+AGN} \\, / \\, M_{\\odot} }$"
     )
 
     fig.savefig(
@@ -546,41 +588,47 @@ def plot_sfms(data):
         ax[0, i].set_title(
             str(redshift_edges[i]) + "$\\leq z <$" + str(redshift_edges[i+1])
         )
-        ax[0, i].errorbar(
+        ax0=ax[0, i].errorbar(
             sfs_data[i]["withAGN_mstar"],
             sfs_data[i]["withAGN_sfr"],
             xerr=sfs_data[i]["withAGN_mstar_err"],
             yerr=sfs_data[i]["withAGN_sfr_err"],
-            fmt = "none",
-            ecolor="tab:red",
-            alpha = 0.3
+            fmt = "o",
+            markeredgecolor = "darkred",
+            markerfacecolor = "tab:red",
+            ecolor="darkred",
+            alpha = 0.8,
+            label="Stellar+AGN"
         )
-        ax0=ax[0, i].scatter(
-            sfs_data[i]["withAGN_mstar"],
-            sfs_data[i]["withAGN_sfr"],
-            edgecolors="tab:red",
-            c="darkred",
-            alpha = 0.7,
-            label = "Pro Stellar+AGN"
-        )
+        # ax0=ax[0, i].scatter(
+        #     sfs_data[i]["withAGN_mstar"],
+        #     sfs_data[i]["withAGN_sfr"],
+        #     edgecolors="tab:red",
+        #     c="darkred",
+        #     alpha = 0.7,
+        #     label = "Stellar+AGN"
+        # )
 
         ax[0, i].errorbar(
             sfs_data[i]["withoutAGN_mstar"],
             sfs_data[i]["withoutAGN_sfr"],
             xerr=sfs_data[i]["withoutAGN_mstar_err"],
             yerr=sfs_data[i]["withoutAGN_sfr_err"],
-            fmt="none",
-            ecolor="tab:blue",
-            alpha = 0.3
+            fmt="o",
+            markeredgecolor = "navy",
+            markerfacecolor = "tab:blue",
+            ecolor="navy",
+            alpha = 0.8,
+            label="Stellar"
         )
-        ax[0, i].scatter(
-            sfs_data[i]["withoutAGN_mstar"],
-            sfs_data[i]["withoutAGN_sfr"],
-            edgecolors="tab:blue",
-            c="navy",
-            alpha = 0.7,
-            label="Pro Stellar"
-        )
+        # ax[0, i].scatter(
+        #     sfs_data[i]["withoutAGN_mstar"],
+        #     sfs_data[i]["withoutAGN_sfr"],
+        #     edgecolors="tab:blue",
+        #     c="navy",
+        #     alpha = 0.7,
+        #     label="Stellar"
+        # )
 
         # ax[0, i].plot([-100,100], [-100,100], ls="--", color="grey")
         ax[0, i].axvspan(
@@ -606,12 +654,12 @@ def plot_sfms(data):
         alpha = 0.5
     )
     ax[0, 1].plot(
-        sfs_fits["mstar"], sfs_fits["z8_withAGN"],
+        sfs_fits["mstar"], sfs_fits["z7_withAGN"],
         color="tab:red",
         linewidth=2
     )
     ax[0, 1].fill_between(
-        sfs_fits["mstar"], sfs_fits["z8_withAGN_q16"], sfs_fits["z8_withAGN_q84"],
+        sfs_fits["mstar"], sfs_fits["z7_withAGN_q16"], sfs_fits["z7_withAGN_q84"],
         color="tab:red",
         alpha=0.5
     )
@@ -637,12 +685,12 @@ def plot_sfms(data):
         alpha=0.5
     )
     ax[0, 1].plot(
-        sfs_fits["mstar"], sfs_fits["z8_withoutAGN"],
+        sfs_fits["mstar"], sfs_fits["z7_withoutAGN"],
         color="tab:blue",
         linewidth=2
     )
     ax[0, 1].fill_between(
-        sfs_fits["mstar"], sfs_fits["z8_withoutAGN_q16"], sfs_fits["z8_withoutAGN_q84"],
+        sfs_fits["mstar"], sfs_fits["z7_withoutAGN_q16"], sfs_fits["z7_withoutAGN_q84"],
         color="tab:blue",
         alpha=0.5
     )
@@ -680,7 +728,7 @@ def plot_sfms(data):
     ax[1, 1].plot(
         smfs["mstar"],
         np.log10(
-            smfs["z8_smf"] * pow(10, sfs_fits["z8_withAGN"])
+            smfs["z7_smf"] * pow(10, sfs_fits["z7_withAGN"])
         ),
         c="tab:red",
         linewidth=2
@@ -688,10 +736,10 @@ def plot_sfms(data):
     ax[1, 1].fill_between(
         smfs["mstar"],
         np.log10(
-            smfs["z8_smf"] * pow(10, sfs_fits["z8_withAGN_q16"])
+            smfs["z7_smf"] * pow(10, sfs_fits["z7_withAGN_q16"])
         ),
         np.log10(
-            smfs["z8_smf"] * pow(10, sfs_fits["z8_withAGN_q84"])
+            smfs["z7_smf"] * pow(10, sfs_fits["z7_withAGN_q84"])
         ),
         alpha=0.5,
         color="tab:red",
@@ -741,7 +789,7 @@ def plot_sfms(data):
     ax[1, 1].plot(
         smfs["mstar"],
         np.log10(
-            smfs["z7_smf"] * pow(10, sfs_fits["z8_withoutAGN"])
+            smfs["z7_smf"] * pow(10, sfs_fits["z7_withoutAGN"])
         ),
         c="tab:blue",
         linewidth=2
@@ -749,10 +797,10 @@ def plot_sfms(data):
     ax[1, 1].fill_between(
         smfs["mstar"],
         np.log10(
-            smfs["z7_smf"] * pow(10, sfs_fits["z8_withoutAGN_q16"])
+            smfs["z7_smf"] * pow(10, sfs_fits["z7_withoutAGN_q16"])
         ),
         np.log10(
-            smfs["z7_smf"] * pow(10, sfs_fits["z8_withoutAGN_q84"])
+            smfs["z7_smf"] * pow(10, sfs_fits["z7_withoutAGN_q84"])
         ),
         alpha=0.5,
         color="tab:blue",
@@ -779,7 +827,60 @@ def plot_sfms(data):
         linewidth=2
     )
 
-    ax[0, 2].legend()
+    ## try to plot inset axis :P
+    axins = ax[0,2].inset_axes(
+        [0.35, 0.1, 0.55, 0.4],
+        xlim = [8.2,9.6], ylim = [-0.1,1.5],
+        xticklabels=[], yticklabels=[],
+        # xticks = [9.0], yticks = [1.0],
+        # xticklabels=["$10^{8.5}$"], yticklabels=["$10^{1}$"]
+    )
+
+    axins.errorbar(
+        sfs_data[2]["withAGN_mstar"],
+        sfs_data[2]["withAGN_sfr"],
+        xerr=sfs_data[2]["withAGN_mstar_err"],
+        yerr=sfs_data[2]["withAGN_sfr_err"],
+        fmt="o",
+        markeredgecolor="darkred",
+        markerfacecolor="tab:red",
+        ecolor="darkred",
+        alpha=0.8
+    )
+    axins.errorbar(
+        sfs_data[2]["withoutAGN_mstar"],
+        sfs_data[2]["withoutAGN_sfr"],
+        xerr=sfs_data[2]["withoutAGN_mstar_err"],
+        yerr=sfs_data[2]["withoutAGN_sfr_err"],
+        fmt="o",
+        markeredgecolor="navy",
+        markerfacecolor="tab:blue",
+        ecolor="navy",
+        alpha=0.8
+    )
+    axins.plot(
+        sfs_fits["mstar"], sfs_fits["z10_withoutAGN"],
+        color="tab:blue",
+        linewidth=2
+    )
+    axins.fill_between(
+        sfs_fits["mstar"], sfs_fits["z10_withoutAGN_q16"], sfs_fits["z10_withoutAGN_q84"],
+        color="tab:blue",
+        alpha=0.5
+    )
+    axins.plot(
+        sfs_fits["mstar"], sfs_fits["z10_withAGN"],
+        color="tab:red",
+        linewidth=2
+    )
+    axins.fill_between(
+        sfs_fits["mstar"], sfs_fits["z10_withAGN_q16"], sfs_fits["z10_withAGN_q84"],
+        color="tab:red",
+        alpha=0.5
+    )
+    ax[0,2].indicate_inset_zoom(axins, edgecolor="black")
+
+    ax[0, 1].legend()
 
     for i in range(3):
         ax[1, i].set_xlim([4.5, 12.5])
@@ -927,9 +1028,10 @@ def plot_sed(data):
     ax[0].set_title("CEERS_1019, z=8.679")
 
     cmap = cm.get_cmap(name='rainbow')
-    print(transmission_curves.keys())
     len_filt = len(transmission_curves.keys()) - 1
     for i in range(len_filt):
+        if np.isnan(phot["flux"][i]):
+            continue
         temp = transmission_curves.iloc[:, i + 1].to_numpy()
         idx = (temp > 0.01)
         transmission = temp[idx] / np.nanmax(temp[idx])
@@ -950,6 +1052,22 @@ def plot_sed(data):
         capsize = 3,
         uplims = np.array([np.nan, np.nan,1,np.nan, 1,np.nan, np.nan, 0,0,0,0,0,0,0,0,0,0])
     )
+    ax[0].scatter(
+        phot["lambda"][~np.isnan(phot["flux"])]/1e4,
+        phot["sed_withAGN"][~np.isnan(phot["flux"])]/1e-19,
+        marker = "s",
+        color = "tab:red",
+        alpha = 0.6
+        # s = 5
+    )
+    ax[0].scatter(
+        phot["lambda"][~np.isnan(phot["flux"])] / 1e4,
+        phot["sed_withoutAGN"][~np.isnan(phot["flux"])] / 1e-19,
+        marker="s",
+        color="tab:blue",
+        alpha = 0.6
+        # s=5
+    )
     ax[0].plot(
         sed_withAGN["wave"]/1e4,
         sed_withAGN["flux"]/1e-19,
@@ -957,7 +1075,7 @@ def plot_sed(data):
         color = "tab:red",
         linestyle = "-",
         alpha = 0.7,
-        label = "Pro Stellar+AGN (LP = -6.28)"
+        label = "Stellar+AGN (LP = -6.28)"
     )
     ax[0].plot(
         sed_withoutAGN["wave"] / 1e4,
@@ -966,16 +1084,16 @@ def plot_sed(data):
         color="tab:blue",
         linestyle="-",
         alpha = 0.7,
-        label="Pro Stellar (LP = -7.58)"
+        label="Stellar (LP = -7.58)"
     )
-    ax[0].plot(
-        agn_withAGN["wave"]/1e4,
-        agn_withAGN["flux"]/1e-19,
-        linewidth=3,
-        color = "tab:purple",
-        alpha = 0.7,
-        label = "AGN flux"
-    )
+    # ax[0].plot(
+    #     agn_withAGN["wave"]/1e4,
+    #     agn_withAGN["flux"]/1e-19,
+    #     linewidth=3,
+    #     color = "tab:purple",
+    #     alpha = 0.7,
+    #     label = "AGN flux"
+    # )
 
     # ax[0].text(
     #     -0.3, 0.65,
@@ -997,7 +1115,6 @@ def plot_sed(data):
 
     ax[0].set_ylabel("$\\rm{F_{\\lambda} \\, / \\, 10^{-19} erg \\, s^{-1} \\, cm^{-2} \\, \\AA^{-1}}$")
 
-
     ax[1].scatter(
         phot["lambda"]/1e4,
         (phot["flux"] - phot["sed_withAGN"]) / phot["flux_err"],
@@ -1011,7 +1128,7 @@ def plot_sed(data):
         alpha = 0.7
     )
     ax[1].axhline(0, ls = "--", color="grey")
-    ax[1].set_ylim([-10,10])
+    ax[1].set_ylim([-6,6])
     ax[1].set_yticks([-5,0,5])
     ax[1].set_ylabel("$\\rm{\\frac{Data-Model}{Err}}$")
 
@@ -1024,10 +1141,10 @@ def main():
 
     data = load_data()
     # plot_csfh(data)
-    # plot_mstar(data)
+    plot_mstar(data)
     # plot_sfms(data)
     # plot_delta_sfr(data)
-    plot_sed(data)
+    # plot_sed(data)
 
 
 if __name__ == "__main__":
