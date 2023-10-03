@@ -1,2 +1,13 @@
 /ProSpectOut/
 .idea
+/plots/AGNcutouts.png
+/plots/agnlum_compare_harikane.png
+/plots/dists.pdf
+/plots/mass_vs_mass_nakajima.pdf
+/plots/mass_vs_mass_hst_egs.pdf
+/plots/thorne_csfh.pdf
+/plots/thorne_dists.pdf
+/scripts/compare_smfs.R
+/scripts/fit_prospect_jwstonly.R
+/scripts/UV_LF.R
+/texsource/

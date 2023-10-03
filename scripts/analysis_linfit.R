@@ -18,8 +18,9 @@ registerDoParallel(cores = 5)
 
 galaxies = data.frame( fread("~/Documents/PROJ2_JWST_CSFH/data/catalogues/high_z_profound.csv") )
 
-load_with_agn = fread("~/Documents/PROJ2_JWST_CSFH/data/catalogues/ProSpect_highz__withAGN.csv")
+load_with_agn = fread("~/Documents/PROJ2_JWST_CSFH/data/catalogues/ProSpect_highz_withAGN.csv")
 load_without_agn = fread("~/Documents/PROJ2_JWST_CSFH/data/catalogues/ProSpect_highz_withoutAGN.csv")
+
 
 zedges = c(3.5, 6.5, 9.5, 12.5)
 
@@ -188,9 +189,6 @@ legend(
   lty = c(1,2)
 )
 dev.off()
-
-
-
 
 # devilsd10 = fread("/Volumes/JordanData/PhD/GAMA-DEVILS/CSFRD Compendium/GAMA-DEVILS/devilsd10_super.csv")
 
