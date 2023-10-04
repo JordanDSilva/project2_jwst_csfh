@@ -714,8 +714,10 @@ def plot_mstarV2(data):
                            )
     cbar = fig.colorbar(ax0, cax=ax0_inset, orientation='horizontal', ticks=[35, 37, 39, 41, 43, 45])
     cbar.ax.tick_params(labelsize=inset_axes_font_size, pad=5)
-    ax0_inset.text(4.5, -4.0, "$\\rm{ \\log_{10}(L_{AGN} \\, / \\, erg \\, s^{-1}) }$",
-                   transform=ax[2,1].transData, fontsize=inset_axes_font_size)
+    cbar.ax.set_xlabel("$\\rm{ \\log_{10}(L_{AGN} \\, / \\, erg \\, s^{-1}) }$",
+                       fontsize = inset_axes_font_size)
+    # ax0_inset.text(5.0, -3.5, "$\\rm{ \\log_{10}(L_{AGN} \\, / \\, erg \\, s^{-1}) }$",
+    #                transform=ax[2,1].transData, fontsize=inset_axes_font_size)
 
     ## try to plot inset axis :P
     axins = ax[2, 0].inset_axes(
@@ -1628,6 +1630,8 @@ def plot_sed(data):
     agn_withAGN = sed_data["agn_withAGN"]
 
     fig, ax = plt.subplots(nrows = 2, ncols=1, figsize=(8,6), constrained_layout=True, height_ratios=(3,1), sharex=True)
+    # fig, ax = plt.subplots(nrows = 1, ncols=1, figsize=(8,6), constrained_layout=True)
+    # ax = [ax]
     ax[0].set_title("CEERS_1019, z=8.679")
 
     cmap = cm.get_cmap(name='rainbow')
@@ -1640,10 +1644,11 @@ def plot_sed(data):
         transmission = temp[idx] / np.nanmax(temp[idx])
         ax[0].plot(
             transmission_curves["lambda"][idx] / 1e4,
-            (transmission) * 0.2 - 0.21,
+            (transmission) * 0.3 - 0.35,
             color=cmap(i / len_filt),
-            alpha=0.5,
-            ls = "-"
+            alpha=0.8,
+            ls = "-",
+            linewidth = 5
         )
 
     ax[0].errorbar(
@@ -1712,7 +1717,7 @@ def plot_sed(data):
     ax[0].legend(fontsize = 18)
 
     ax[0].set_xlim([0.0,5.1])
-    ax[0].set_ylim([-0.2,0.9])
+    ax[0].set_ylim([-0.3,0.9])
     ax[0].set_yticks([0,0.4,0.8])
     # ax[0].set_yscale("log")
 
@@ -1743,13 +1748,13 @@ def main():
     print("Main script")
 
     data = load_data()
-    plot_csfh(data)
+    # plot_csfh(data)
     # plot_mstar(data)
-    plot_mstarV2(data)
+    # plot_mstarV2(data)
     # plot_sfms(data)
-    plot_sfmsV2(data)
-    plot_delta_sfr(data)
-    # plot_sed(data)
+    # plot_sfmsV2(data)
+    # plot_delta_sfr(data)
+    plot_sed(data)
 
 
 if __name__ == "__main__":
