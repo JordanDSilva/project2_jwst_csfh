@@ -57,8 +57,8 @@ zlist_hi = c(
 
 redshift_data = data.frame(list(
   z = zlist,
-  z16 = zlist_lo,
-  z74 = zlist_hi,
+  z16 = zlist - zlist_lo,
+  z84 = zlist_hi - zlist,
   zmin = zlist_min,
   zmax = zlist_max
 ))

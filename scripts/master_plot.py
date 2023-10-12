@@ -255,7 +255,7 @@ def plot_csfh(data):
     ax.errorbar(
         csfh["z"], csfh["CSFH_without_AGN"],
         yerr=[csfh["CSFH_without_AGN_q16"], [err_up[0], 0.0, 0.0]],
-        xerr=[csfh["z"] - csfh["z16"], csfh["z74"] - csfh["z"]],
+        xerr=[csfh["z16"], csfh["z84"]],
         markersize=12,
         markerfacecolor="tab:blue",
         fmt="^",
@@ -282,7 +282,7 @@ def plot_csfh(data):
     ax.errorbar(
         csfh["z"]+0.05, csfh["CSFH_with_AGN"],
         yerr=[csfh["CSFH_with_AGN_q16"], [err_up[0], 0.0, 0.0]],
-        xerr=[csfh["z"] - csfh["z16"], csfh["z74"] - csfh["z"]],
+        xerr=[csfh["z16"], csfh["z84"]],
         markersize = 12,
         markerfacecolor="tab:red",
         fmt="v",
@@ -1744,17 +1744,42 @@ def plot_sed(data):
 
     fig.savefig(main_stub + "/plots/SED_galaxy.pdf")
 
+def foobar():
+
+    row = pd.read_csv("/Users/22252335/Documents/PROJ2_JWST_CSFH/data/save/jwst_csfh_data.csv")
+
+
+    for which in ['with', 'without']:
+        data_z = row['z']
+        data_log10rho = row['CSFH_%s_AGN' % which]
+        z_left = row['z16']
+        z_right = row['z84']
+
+        log10rho_left = row['CSFH_%s_AGN_q16' % which]
+        log10rho_right = row['CSFH_%s_AGN_q84' % which]
+
+        plt.errorbar(
+            data_z, data_log10rho,
+            yerr=[log10rho_left, log10rho_right],
+            xerr=[z_left, z_right]
+        )
+    plt.ylim([-4.5, -0.95])
+    plt.xlim([0,16])
+    plt.show()
+
 def main():
     print("Main script")
 
-    data = load_data()
+    # data = load_data()
     # plot_csfh(data)
     # plot_mstar(data)
     # plot_mstarV2(data)
     # plot_sfms(data)
     # plot_sfmsV2(data)
     # plot_delta_sfr(data)
-    plot_sed(data)
+    # plot_sed(data)
+
+    foobar()
 
 
 if __name__ == "__main__":
