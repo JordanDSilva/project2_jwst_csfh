@@ -27,9 +27,9 @@ literature_galaxies = data.frame(
       hms2deg(14, 19, 33.52),
       hms2deg(14, 19, 17.63),
       hms2deg(14, 19, 20.69),
-      hms2deg(14, 29, 19.54),
-      hms2deg(14, 20, 34.87),
-      215.0353914
+      hms2deg(14, 20, 19.54),
+      hms2deg(14, 20, 34.87)
+      # 215.0353914
     ),
     DEC = c(
       dms2deg(53, 2, 9.8),
@@ -41,47 +41,47 @@ literature_galaxies = data.frame(
       dms2deg(52, 49, 49),
       dms2deg(52, 52, 57.7),
       dms2deg(52, 58, 19.9),
-      dms2deg(52, 58, 2.2),
-      52.8906618
+      dms2deg(52, 58, 2.2)
+      # 52.8906618
     ),
     AGNLum = c(
-      5.8e44,
-      3.4e44,
-      2.8e44,
-      3.3e45,
-      1.4e45,
-      1.3e45,
-      8.3e44,
-      8.3e44,
-      2.1e44,
-      5.4e43,
-      10^(45.1)
+      1.9e45,
+      1.1e45,
+      9.1e44,
+      1.1e46,
+      4.8e45,
+      4.3e45,
+      2.8e45,
+      2.8e45,
+      7.1e44,
+      1.8e44
+      # 10^(45.1)
     ),
     AGNLum_hi = c(
-      9.7e44,
-      14.8e44,
-      3.0e44,
-      0.3e45,
-      1.5e45,
-      0.1e45,
-      4.3e44,
-      34.3e44,
-      12.7e44,
-      5.6e43,
-      0.2 * log(10) * 10^45.1
+      3.8e45,
+      6.1e45,
+      13.8e44,
+      0.1e46,
+      7.2e45,
+      0.4e45,
+      2.3e45,
+      14.2e45,
+      51.8e44,
+      2.6e44
+      # 0.2 * log(10) * 10^45.1
     ),
     AGNLum_lo = c(
-      1.7e44,
-      2.6e44,
-      2.2e44,
       0.6e45,
-      1.1e45,
-      0.4e45,
-      4.2e44,
-      6.7e44,
-      1.3e44,
-      1.7e43,
-      0.2 * log(10) * 10^45.1
+      0.9e45,
+      7.1e44,
+      0.2e46,
+      3.6e45,
+      1.4e44,
+      1.4e44,
+      2.2e45,
+      4.3e45,
+      0.5e44
+      # 0.2 * log(10) * 10^45.1
     ),
     Mstar = c(
       8.63,
@@ -93,8 +93,8 @@ literature_galaxies = data.frame(
       9.35,
       9.36,
       9.61,
-      8.94,
-      9.5
+      8.94
+      # 9.5
     )
   )
 )
@@ -122,7 +122,8 @@ match_withoutAGN = withoutAGN[match_literature$bestmatch$compareID, ]
 match_harikane = literature_galaxies[match_literature$bestmatch$refID, ]
 
 agn_frac = foreach(i = 1:dim(match_withAGN)[1], .combine = "c")%do%{
-  temp = readRDS(paste0("/Users/22252335/Documents/PROJ2_JWST_CSFH/ProSpectOut/withAGN/gal_",
+  prospect_stub = "/Volumes/JordanData/Proj2_JWST_CSFH/ProSpectOut/withAGN/gal_"
+  temp = readRDS(paste0(prospect_stub,
                         match_withAGN$COLID[i], "_", match_withAGN$VISITID[i], "_", match_withAGN$MODULE[i], ".rds"))
 
   agnfrac = sum(temp$bestfit$SEDout$AGN$lum[temp$bestfit$SEDout$AGN$wave > 5e4 & temp$bestfit$SEDout$AGN$wave < 24e4]) /
@@ -131,12 +132,47 @@ agn_frac = foreach(i = 1:dim(match_withAGN)[1], .combine = "c")%do%{
   agnfrac
 }
 
+
+log10(match_withAGN$AGNlum50) - log10(match_harikane$AGNLum)
+log10(match_withAGN$AGNlum50) - log10(match_harikane$AGNLum*agn_frac)
+
+foobar = Rfits_read_image("/Volumes/RAIDY/JWST/Mosaic_Stacks/Patch/patch_CEERS_F115W_long.fits")
+
+png("/Users/22252335/Desktop/ceers_footprint_plot.png")
+par(mar = rep(0,4), oma = rep(0,4))
+plot(foobar, flip = T, sparse =1, xlim = c(-5000, 25000), ylim = c(-5000, 25000))
+points(
+  Rwcs_s2p(RA = literature_galaxies$RA, 
+           Dec = literature_galaxies$DEC, 
+           keyvalues = foobar$keyvalues),
+  pch = 1, col = "red", cex = 1.5
+)
+points(
+  Rwcs_s2p(RA = withAGN$RA, 
+           Dec = withAGN$DEC,
+           keyvalues = foobar$keyvalues),
+  pch = ".", col = "green", cex = 1.2
+)
+dev.off()
+
+Rwcs_overlap(keyvalues_test = foobar$keyvalues, 
+             keyvalues_ref = foobar$keyvalues, plot = T,)
+
+points(
+  literature_galaxies$RA, 
+  literature_galaxies$DEC, 
+  pch = 16, col="red", xlim = c(214.1, 215.5), ylim = c(52.8, 53.1)
+)
+points(
+  withAGN$RA, withAGN$DEC
+)
+
 png("/Users/22252335/Documents/PROJ2_JWST_CSFH/plots/agnlum_compare_harikane.png",
     width = 10, height = 8, units = "in", res = 240)
 par(mfrow = c(1,2), oma = c(3.5,2.5,1.5,1.5), mar = c(3.5,3.5,0.5,0.5))
 magplot(
   log10(match_withAGN$AGNlum50),
-  log10(match_harikane$AGNLum),
+  log10(match_harikane$AGNLum*agn_frac),
   xlim = c(35, 48),
   ylim = c(35, 48),
   pch = 16,
@@ -147,7 +183,7 @@ magplot(
 )
 magerr(
   log10(match_withAGN$AGNlum50),
-  log10(match_harikane$AGNLum),
+  log10(match_harikane$AGNLum*agn_frac),
   xlo = match_withAGN$AGNlum16/(log(10)*match_withAGN$AGNlum50),
   xhi = match_withAGN$AGNlum84/(log(10)*match_withAGN$AGNlum50),
   ylo = match_harikane$AGNLum_lo/(log(10)*match_harikane$AGNLum),

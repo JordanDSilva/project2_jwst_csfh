@@ -21,7 +21,6 @@ def quantile50(x):
     return(
         np.nanquantile(x, 0.5)
     )
-
 def quantile16(x):
     return (
         np.nanquantile(x, 0.16)
@@ -127,6 +126,20 @@ def load_data():
         "agn_withAGN" : pd.read_csv(sed_drive + "/agnlum_withAGN.csv"),
         "transmission_curves" : pd.read_csv(sed_drive + "/transmission_curves.csv")
     }
+
+    lines_sfms = {
+        "FLARES" : [
+            [2.02, 9.90, 1.40, 0.48],
+            [2.38, 9.98, 1.33, 0.41],
+            [2.22, 9.69, 1.09, 0.43]
+        ],
+        "Shark": [
+            [3.90, 12.62, 0.93, 0.23],
+            [2.35, 10.58, 0.92, 0.62],
+            [2.05, 9.72, 0.89, 0.51]
+        ],
+        "test_mstar" : np.linspace(5.0, 12.5, 100)
+    }
     return(
         {
             "CSFH" : CSFH_data,
@@ -143,6 +156,7 @@ def load_data():
             "sfs_fits" : sfs_fits,
             "smfs" : smf_data,
             "sfs" : [sfs_z5,sfs_z7,sfs_z10],
+            "lines_sfms" : lines_sfms,
 
             "devilsz5" : devilsz5,
 
@@ -317,6 +331,169 @@ def plot_csfh(data):
     fig.savefig(
         main_stub + "plots/csfh.pdf"
     )
+def plot_csfhV2(data):
+    """Plot the CSFH"""
+
+    colour_palette = {
+        "main": "#4A4E69",
+        "lines": "#C9ADA7",
+        "points": "#9A8C98",
+        "errors": "#22223B"
+    }
+
+    fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8, 5), constrained_layout=True)
+
+    ## plot md14 and harikane constant SFE
+    zvec = np.linspace(0, 20)
+
+    def harikane_csfh(z):
+        csfh = (61.7 * (1 + z) ** -3.13 +
+                1.0 * 10 ** (0.22 * (1 + z)) +
+                2.4 * 10 ** (0.5 * (1 + z) - 3.0)) ** -1
+        return (
+                np.log10(csfh) + np.log10(1 / 1.53)
+        )
+
+    def md2014_fit(z):
+        T0 = 0.015 * (1 + z) ** 2.7
+        T1 = 1 + ((1 + z) / 2.9) ** 5.6
+        return np.log10(T0 / T1) + np.log10(1 / 1.53)  # 0.63 convert to Chabrier
+
+    ax.plot(zvec, md2014_fit(zvec), color=colour_palette["lines"], linestyle="--", linewidth=2, label="M&D+14")
+    ax.plot(zvec, harikane_csfh(zvec), color=colour_palette["lines"], linewidth=2, label="Harikane+22")
+    ax.fill_between(
+        data["thorne2021_fitting"]["z"],
+        data["thorne2021_fitting"]["csfh_lo"],
+        data["thorne2021_fitting"]["csfh_hi"],
+        color=colour_palette["lines"],
+        alpha = 0.6,
+        label = "Thorne+21"
+    )
+
+## plot my old gama+devils csfh
+    ax.errorbar(
+        x=data["gama_devils"]["redshift"],
+        y=data["gama_devils"]["csfrd"],
+        yerr=[data["gama_devils"]["err_down"], data["gama_devils"]["err_up"]],
+        color="grey",
+        fmt=".",
+        markersize=8,
+        label="D'Silva+23"
+    )
+## plot bouwens+15 data
+    ax.errorbar(
+        data["bouwens2015"]["redshift"],
+        data["bouwens2015"]["csfrd"],
+        yerr=[data["bouwens2015"]["err_down"], data["bouwens2015"]["err_up"]],
+        color=colour_palette["points"],
+        fmt="x",
+        label="Bouwens+15",
+        alpha = 0.7
+    )
+## plot new harikane data
+    ax.errorbar(
+        data["harikane2023"]["z"],
+        data["harikane2023"]["csfh"],
+        yerr = [data["harikane2023"]["lo"], data["harikane2023"]["hi"]],
+        color=colour_palette["points"],
+        fmt = "s",
+        label = "Harikane+23",
+        alpha = 0.7,
+    )
+## plot bouwens+23 data
+    ax.errorbar(
+        data["bouwens2023"]["redshift"][0:2],
+        data["bouwens2023"]["csfh"][0:2],
+        yerr=[data["bouwens2023"]["lo"][0:2], data["bouwens2023"]["hi"][0:2]],
+        color=colour_palette["points"],
+        fmt="d",
+        label="Bouwens+23",
+        alpha = 0.7
+    )
+
+## plot Adams+23 points
+    ax.errorbar(
+        data["adams2023"]["redshift"],
+        data["adams2023"]["csfh"],
+        yerr=[data["adams2023"]["csfh"] - data["adams2023"]["lo"], data["adams2023"]["hi"] - data["adams2023"]["csfh"]],
+        color=colour_palette["points"],
+        fmt="*",
+        label="Adams+23",
+        alpha = 0.7
+    )
+
+## plot the new csfh
+    csfh = data["CSFH"]
+
+    err_up = csfh["CSFH_without_AGN_q84"]
+    err_up[2] = 0
+    ax.errorbar(
+        csfh["z"], csfh["CSFH_without_AGN"],
+        yerr=[csfh["CSFH_without_AGN_q16"], err_up],
+        xerr=[csfh["z16"], csfh["z84"]],
+        markersize=12,
+        markerfacecolor="tab:blue",
+        fmt="^",
+        capsize=3,
+        label="Stellar",
+        alpha=1.0,
+        ecolor="tab:blue",
+        markeredgecolor="black",
+        zorder=200,
+    )
+
+    ax.errorbar(
+        csfh["z"], csfh["CSFH_without_AGN"],
+        yerr=[0,0.0,0.1],
+        xerr=[csfh["z"] - csfh["zmin"], csfh["zmax"] - csfh["z"]],
+        color="tab:blue",
+        fmt="none",
+        alpha=0.7,
+        zorder=200,
+        lolims = [False, False, True]
+    )
+
+    err_up = csfh["CSFH_with_AGN_q84"]
+    err_up[2] = 0
+    ax.errorbar(
+        csfh["z"]+0.05, csfh["CSFH_with_AGN"],
+        yerr=[csfh["CSFH_with_AGN_q16"], err_up],
+        xerr=[csfh["z16"], csfh["z84"]],
+        markersize = 12,
+        markerfacecolor="tab:red",
+        fmt="v",
+        capsize=3,
+        label="Stellar+AGN",
+        alpha=1.0,
+        ecolor="tab:red",
+        markeredgecolor="black",
+        zorder=200
+    )
+    ax.errorbar(
+        csfh["z"]+0.05, csfh["CSFH_with_AGN"],
+        yerr = [0,0.0,0.1],
+        xerr=[csfh["z"] - csfh["zmin"], csfh["zmax"]-csfh["z"]],
+        color = "tab:red",
+        fmt = "none",
+        alpha = 0.7,
+        zorder=200,
+        lolims = [False, False, True]
+    )
+
+    ax.set_xlim([0,16.5])
+    ax.set_ylim([-4.55, -0.95])
+    ax.set_yticks([-4.0, -3.0, -2.0, -1.0])
+    ax.set_yticklabels([r'$10^{{{:n}}}$'.format(i) for i in ax.get_yticks()])
+
+    ax.set_xlabel("Redshift")
+    ax.set_ylabel("$\\rm{ \\rho_{SFR} \\, / \\, M_{\\odot} \\, yr^{-1} \\, Mpc^{-3} }$")
+
+    ax.legend(ncol=1, frameon=False, loc="lower left")
+
+    fig.savefig(
+        main_stub + "plots/csfh.pdf"
+    )
+
 
 def plot_mstar(data):
     """Plot stellar mass against stellar mass"""
@@ -1146,6 +1323,15 @@ def plot_sfms(data):
         main_stub + "plots/sfs.pdf"
     )
 
+def dplaw(mstar, parm):
+    S0, M0, a, b = parm
+
+    sfr=S0 - np.log10(
+        (pow(10, mstar) / pow(10, M0)) ** (-1 * a) +
+        (pow(10, mstar) / pow(10, M0)) ** (-1 * b)
+    )
+    return sfr
+
 def plot_sfmsV2(data):
     """Plot stellar mass against stellar mass"""
 
@@ -1155,7 +1341,7 @@ def plot_sfmsV2(data):
     smfs = data["smfs"]
     sfs_data = data["sfs"]
     devilsz5 = data["devilsz5"]
-
+    lines_sfms = data["lines_sfms"]
 
     norm = plt.Normalize()
     cm = plt.colormaps["RdYlBu_r"]
@@ -1163,8 +1349,77 @@ def plot_sfmsV2(data):
     withAGN_catalogue = data["withAGN"]
     redshift_info = data["redshift_info"]
 
+    with_AGN = [
+        [sfs_fits["z5_withAGN"], sfs_fits["z5_withAGN_q16"], sfs_fits["z5_withAGN_q84"]],
+        [sfs_fits["z7_withAGN"], sfs_fits["z7_withAGN_q16"], sfs_fits["z7_withAGN_q84"]],
+        [sfs_fits["z10_withAGN"], sfs_fits["z10_withAGN_q16"], sfs_fits["z10_withAGN_q84"]]
+    ]
+    without_AGN = [
+        [sfs_fits["z5_withoutAGN"], sfs_fits["z5_withoutAGN_q16"], sfs_fits["z5_withoutAGN_q84"]],
+        [sfs_fits["z7_withoutAGN"], sfs_fits["z7_withoutAGN_q16"], sfs_fits["z7_withoutAGN_q84"]],
+        [sfs_fits["z10_withoutAGN"], sfs_fits["z10_withoutAGN_q16"], sfs_fits["z10_withoutAGN_q84"]]
+    ]
+
     redshift_edges =[3.5, 6.5, 9.5, 12.5]
     for i in range(3):
+
+        ax[i, 0].plot(
+            sfs_fits["mstar"], with_AGN[i][0],
+            color="tab:red",
+            linewidth=3,
+        )
+        ax[i, 0].fill_between(
+            sfs_fits["mstar"], with_AGN[i][1], with_AGN[i][2],
+            color="tab:red",
+            alpha=0.3,
+        )
+
+        ax[i, 0].plot(
+            sfs_fits["mstar"], without_AGN[i][0],
+            color="tab:blue",
+            linewidth=3,
+        )
+        ax[i, 0].fill_between(
+            sfs_fits["mstar"], without_AGN[i][1], without_AGN[i][2],
+            color="tab:blue",
+            alpha=0.5,
+        )
+
+        ## simulation lines
+        ax[i, 0].plot(
+            lines_sfms["test_mstar"],
+            dplaw(
+                lines_sfms["test_mstar"],
+                lines_sfms["FLARES"][i]
+            ),
+            color = "tab:orange",
+            ls = "--",
+            linewidth = 2,
+            label = "FLARES",
+        )
+
+        ax[i, 0].plot(
+            lines_sfms["test_mstar"],
+            dplaw(
+                lines_sfms["test_mstar"],
+                lines_sfms["Shark"][i]
+            ),
+            color="tab:green",
+            ls="--",
+            linewidth=2,
+            label = "Shark",
+        )
+
+        ## From Heintz+2023
+        if i > 0:
+            ax[i, 0].plot(
+                lines_sfms["test_mstar"],
+                0.7 * lines_sfms["test_mstar"] - 5.2 + np.log10(0.61),
+                color = "black",
+                ls = "-",
+                linewidth = 2,
+                label = "Heintz+23",
+            )
 
         ## DEVILSD10 z>5
         ax[i, 0].scatter(
@@ -1245,67 +1500,67 @@ def plot_sfmsV2(data):
         ax[i, 0].xaxis.set_tick_params(pad=5)
 
 
-    ax[0, 0].plot(
-        sfs_fits["mstar"], sfs_fits["z5_withAGN"],
-        color="tab:red",
-        linewidth = 2
-    )
-    ax[0, 0].fill_between(
-        sfs_fits["mstar"], sfs_fits["z5_withAGN_q16"], sfs_fits["z5_withAGN_q84"],
-        color = "tab:red",
-        alpha = 0.5
-    )
-    ax[1, 0].plot(
-        sfs_fits["mstar"], sfs_fits["z7_withAGN"],
-        color="tab:red",
-        linewidth=2
-    )
-    ax[1, 0].fill_between(
-        sfs_fits["mstar"], sfs_fits["z7_withAGN_q16"], sfs_fits["z7_withAGN_q84"],
-        color="tab:red",
-        alpha=0.5
-    )
-    ax[2, 0].plot(
-        sfs_fits["mstar"], sfs_fits["z10_withAGN"],
-        color="tab:red",
-        linewidth=2
-    )
-    ax[2, 0].fill_between(
-        sfs_fits["mstar"], sfs_fits["z10_withAGN_q16"], sfs_fits["z10_withAGN_q84"],
-        color="tab:red",
-        alpha=0.5
-    )
-
-    ax[0, 0].plot(
-        sfs_fits["mstar"], sfs_fits["z5_withoutAGN"],
-        color="tab:blue",
-        linewidth=2
-    )
-    ax[0, 0].fill_between(
-        sfs_fits["mstar"], sfs_fits["z5_withoutAGN_q16"], sfs_fits["z5_withoutAGN_q84"],
-        color="tab:blue",
-        alpha=0.5
-    )
-    ax[1, 0].plot(
-        sfs_fits["mstar"], sfs_fits["z7_withoutAGN"],
-        color="tab:blue",
-        linewidth=2
-    )
-    ax[1, 0].fill_between(
-        sfs_fits["mstar"], sfs_fits["z7_withoutAGN_q16"], sfs_fits["z7_withoutAGN_q84"],
-        color="tab:blue",
-        alpha=0.5
-    )
-    ax[2, 0].plot(
-        sfs_fits["mstar"], sfs_fits["z10_withoutAGN"],
-        color="tab:blue",
-        linewidth=2
-    )
-    ax[2, 0].fill_between(
-        sfs_fits["mstar"], sfs_fits["z10_withoutAGN_q16"], sfs_fits["z10_withoutAGN_q84"],
-        color="tab:blue",
-        alpha=0.5
-    )
+    # ax[0, 0].plot(
+    #     sfs_fits["mstar"], sfs_fits["z5_withAGN"],
+    #     color="tab:red",
+    #     linewidth = 2
+    # )
+    # ax[0, 0].fill_between(
+    #     sfs_fits["mstar"], sfs_fits["z5_withAGN_q16"], sfs_fits["z5_withAGN_q84"],
+    #     color = "tab:red",
+    #     alpha = 0.5
+    # )
+    # ax[1, 0].plot(
+    #     sfs_fits["mstar"], sfs_fits["z7_withAGN"],
+    #     color="tab:red",
+    #     linewidth=2
+    # )
+    # ax[1, 0].fill_between(
+    #     sfs_fits["mstar"], sfs_fits["z7_withAGN_q16"], sfs_fits["z7_withAGN_q84"],
+    #     color="tab:red",
+    #     alpha=0.5
+    # )
+    # ax[2, 0].plot(
+    #     sfs_fits["mstar"], sfs_fits["z10_withAGN"],
+    #     color="tab:red",
+    #     linewidth=2
+    # )
+    # ax[2, 0].fill_between(
+    #     sfs_fits["mstar"], sfs_fits["z10_withAGN_q16"], sfs_fits["z10_withAGN_q84"],
+    #     color="tab:red",
+    #     alpha=0.5
+    # )
+    #
+    # ax[0, 0].plot(
+    #     sfs_fits["mstar"], sfs_fits["z5_withoutAGN"],
+    #     color="tab:blue",
+    #     linewidth=2
+    # )
+    # ax[0, 0].fill_between(
+    #     sfs_fits["mstar"], sfs_fits["z5_withoutAGN_q16"], sfs_fits["z5_withoutAGN_q84"],
+    #     color="tab:blue",
+    #     alpha=0.5
+    # )
+    # ax[1, 0].plot(
+    #     sfs_fits["mstar"], sfs_fits["z7_withoutAGN"],
+    #     color="tab:blue",
+    #     linewidth=2
+    # )
+    # ax[1, 0].fill_between(
+    #     sfs_fits["mstar"], sfs_fits["z7_withoutAGN_q16"], sfs_fits["z7_withoutAGN_q84"],
+    #     color="tab:blue",
+    #     alpha=0.5
+    # )
+    # ax[2, 0].plot(
+    #     sfs_fits["mstar"], sfs_fits["z10_withoutAGN"],
+    #     color="tab:blue",
+    #     linewidth=2
+    # )
+    # ax[2, 0].fill_between(
+    #     sfs_fits["mstar"], sfs_fits["z10_withoutAGN_q16"], sfs_fits["z10_withoutAGN_q84"],
+    #     color="tab:blue",
+    #     alpha=0.5
+    # )
 
     ax[0, 1].plot(
         smfs["mstar"],
@@ -1482,7 +1737,7 @@ def plot_sfmsV2(data):
     )
     ax[2, 0].indicate_inset_zoom(axins, edgecolor="black")
 
-    ax[0, 0].legend(loc = "lower right")
+    leg = ax[1, 0].legend(loc = "lower right", ncol = 2, framealpha = 1, fontsize = 13)
 
     for i in range(3):
         ax[i, 1].yaxis.tick_right()
@@ -1748,7 +2003,6 @@ def foobar():
 
     row = pd.read_csv("/Users/22252335/Documents/PROJ2_JWST_CSFH/data/save/jwst_csfh_data.csv")
 
-
     for which in ['with', 'without']:
         data_z = row['z']
         data_log10rho = row['CSFH_%s_AGN' % which]
@@ -1770,16 +2024,16 @@ def foobar():
 def main():
     print("Main script")
 
-    # data = load_data()
-    # plot_csfh(data)
+    data = load_data()
+    plot_csfhV2(data)
     # plot_mstar(data)
     # plot_mstarV2(data)
     # plot_sfms(data)
-    # plot_sfmsV2(data)
+    plot_sfmsV2(data)
     # plot_delta_sfr(data)
     # plot_sed(data)
 
-    foobar()
+    # foobar()
 
 
 if __name__ == "__main__":
