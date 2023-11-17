@@ -11,3 +11,10 @@
 /scripts/fit_prospect_jwstonly.R
 /scripts/UV_LF.R
 /texsource/
+
+/plots/old/
+/plots/with_prior/
+
+/data/save/fit_data_master.rds
+
+/scripts/test.R
